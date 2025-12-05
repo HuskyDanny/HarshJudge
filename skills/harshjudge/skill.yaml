@@ -1,0 +1,86 @@
+# HarshJudge Skill Definition
+# BMAD-Core-inspired skill architecture for deterministic, trackable AI agent execution
+
+skill:
+  name: HarshJudge
+  id: harshjudge
+  version: "1.0"
+  description: AI-native E2E testing orchestration for Claude Code
+
+activation:
+  keywords:
+    - "harshjudge"
+    - "harsh judge"
+    - "e2e test"
+    - "end to end test"
+  commands:
+    - "/harshjudge:setup"
+    - "/harshjudge:analyze"
+    - "/harshjudge:create"
+    - "/harshjudge:run"
+    - "/harshjudge:status"
+
+prerequisites:
+  mcpServers:
+    - name: "@harshjudge/mcp-server"
+      required: true
+      tools:
+        - initProject
+        - saveScenario
+        - startRun
+        - recordEvidence
+        - completeRun
+        - getStatus
+    - name: "playwright"
+      required: true
+      tools:
+        - browser_navigate
+        - browser_click
+        - browser_type
+        - browser_snapshot
+        - browser_take_screenshot
+        - browser_console_messages
+
+commands:
+  - setup: Execute task setup-project.md
+  - analyze: Execute task analyze-project.md
+  - create: Execute task create-scenario.md
+  - run: Execute task run-scenario.md
+  - status: Execute task check-status.md
+
+principles:
+  - id: evidence-first
+    name: Evidence First
+    rule: Always capture screenshots before and after actions
+  - id: fail-fast
+    name: Fail Fast
+    rule: Stop on first failure, capture all diagnostics
+  - id: complete-runs
+    name: Complete Runs
+    rule: Always call completeRun, even on failure
+  - id: human-readable
+    name: Human-Readable
+    rule: Scenarios are Markdown, readable by anyone
+  - id: state-tracked
+    name: State Tracked
+    rule: Update skill-state.yaml after each step for recoverability
+
+dependencies:
+  tasks:
+    - setup-project.md
+    - analyze-project.md
+    - create-scenario.md
+    - run-scenario.md
+    - check-status.md
+  templates:
+    - scenario-tmpl.yaml
+    - analysis-output-tmpl.md
+    - status-output-tmpl.md
+  checklists:
+    - setup-checklist.md
+    - scenario-checklist.md
+    - pre-run-checklist.md
+    - evidence-checklist.md
+  data:
+    - evidence-types.md
+    - error-protocols.md
