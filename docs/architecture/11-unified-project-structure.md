@@ -67,13 +67,26 @@ HarshJudge/
 │       ├── package.json
 │       └── tsconfig.json
 ├── skills/
-│   └── harshjudge/                   # Claude skill files
-│       ├── skill.md                  # Main skill definition
-│       ├── setup.md                  # Installation skill
-│       ├── analyze.md                # Project analysis skill
-│       ├── create.md                 # Scenario creation skill
-│       ├── run.md                    # Test execution skill
-│       └── status.md                 # Status check skill
+│   └── harshjudge/                   # Claude skill files (BMAD-like structure)
+│       ├── skill.yaml                # Main skill definition (YAML)
+│       ├── tasks/                    # Executable task workflows
+│       │   ├── setup-project.md
+│       │   ├── analyze-project.md
+│       │   ├── create-scenario.md
+│       │   ├── run-scenario.md
+│       │   └── check-status.md
+│       ├── templates/                # Output templates
+│       │   ├── scenario-tmpl.yaml
+│       │   ├── analysis-output-tmpl.md
+│       │   └── status-output-tmpl.md
+│       ├── checklists/               # Validation checklists
+│       │   ├── setup-checklist.md
+│       │   ├── scenario-checklist.md
+│       │   ├── pre-run-checklist.md
+│       │   └── evidence-checklist.md
+│       └── data/                     # Reference data
+│           ├── evidence-types.md
+│           └── error-protocols.md
 ├── examples/
 │   └── sample-project/               # Demo project
 │       ├── .harshJudge/

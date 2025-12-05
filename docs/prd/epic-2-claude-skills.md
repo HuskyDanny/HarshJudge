@@ -2,20 +2,47 @@
 
 **Goal:** Create the Claude skill files that guide test workflows with consistent patterns and protocols. Skills ensure Claude follows deterministic patterns while allowing AI flexibility in execution.
 
-## Story 2.1: Create Main Skill Definition
+## Story 2.0: Create HarshJudge Skill Core Structure
 
-**As a** Claude Code user,
-**I want** a main skill file that defines HarshJudge capabilities,
-**so that** Claude understands how to use HarshJudge tools correctly.
+**As a** developer,
+**I want** a BMAD-like skill architecture with structured directories,
+**so that** skills are trackable, context-minimized, and deterministic.
 
 **Acceptance Criteria:**
 
-1. `skills/harshjudge/skill.md` created with skill metadata
-2. Skill defines activation triggers for HarshJudge commands
-3. Skill lists all sub-skills with descriptions
-4. Skill documents required MCP servers (harshjudge, playwright)
-5. Skill defines core principles (evidence first, fail fast, etc.)
-6. Skill provides overview of the HarshJudge workflow
+1. `skills/harshjudge/` directory structure created with subdirectories:
+   - `tasks/` - Executable task workflows
+   - `templates/` - Output and scenario templates
+   - `checklists/` - Validation checklists
+   - `data/` - Reference data files
+2. Main `skill.yaml` file created with YAML-structured definition including:
+   - Skill metadata (name, id, version, description)
+   - Activation triggers (keywords and commands)
+   - Prerequisites (required MCP servers)
+   - Command-to-task mappings
+   - Core principles
+   - Dependencies list
+3. `skill-state.yaml` schema defined for run-level state tracking
+4. Base templates created for tasks, checklists, and data files
+5. Architecture documents updated to reflect new structure
+
+---
+
+## Story 2.1: Implement Main Skill Definition
+
+**As a** Claude Code user,
+**I want** a YAML-structured main skill file that defines HarshJudge capabilities,
+**so that** Claude understands how to use HarshJudge tools with deterministic behavior.
+
+**Acceptance Criteria:**
+
+1. `skills/harshjudge/skill.yaml` populated with complete skill definition
+2. Activation section defines keyword triggers and slash commands
+3. Commands section maps each command to corresponding task file
+4. Prerequisites section documents required MCP servers with validation hints
+5. Principles section defines core principles with IDs for reference
+6. Dependencies section lists all tasks, templates, checklists, and data files
+7. Skill follows BMAD-like activation pattern (read YAML, adopt persona, await commands)
 
 ---
 
@@ -27,17 +54,18 @@
 
 **Acceptance Criteria:**
 
-1. `skills/harshjudge/setup.md` created
-2. Skill triggers on: "setup harshjudge", "configure harshjudge", "install harshjudge"
-3. Skill guides through:
-   - Verifying Node.js version
-   - Installing MCP server
-   - Configuring Claude Code MCP settings
-   - Verifying Playwright MCP is available
-   - Initializing project with `initProject` tool
-   - Verifying setup with `getStatus` tool
-4. Skill provides troubleshooting for common issues
-5. Skill confirms successful setup
+1. `skills/harshjudge/tasks/setup-project.md` created as executable task workflow
+2. Task triggers defined in `skill.yaml` for: "setup harshjudge", "configure harshjudge", "install harshjudge"
+3. Task defines sequential steps with checkpoints:
+   - Step 1: Verify Node.js version (>= 18)
+   - Step 2: Verify/Install MCP server
+   - Step 3: Configure Claude Code MCP settings
+   - Step 4: Verify Playwright MCP availability
+   - Step 5: Initialize project with `initProject` tool
+   - Step 6: Verify setup with `getStatus` tool
+4. `skills/harshjudge/checklists/setup-checklist.md` created for validation
+5. Task includes troubleshooting section with common issues and resolutions
+6. Task outputs success confirmation with environment summary
 
 ---
 
@@ -49,19 +77,17 @@
 
 **Acceptance Criteria:**
 
-1. `skills/harshjudge/analyze.md` created
-2. Skill triggers on: "analyze project", "suggest tests", "what should I test"
-3. Skill defines analysis protocol:
-   - Read package.json for tech stack
-   - Scan for routes/pages
-   - Scan for API endpoints
-   - Read database schema if present
-   - Identify auth configuration
-4. Skill defines output format:
-   - Tech stack summary
-   - Discovered entry points table
-   - Suggested test scenarios with priorities
-5. Skill asks before creating scenarios
+1. `skills/harshjudge/tasks/analyze-project.md` created as executable task workflow
+2. Task triggers defined in `skill.yaml` for: "analyze project", "suggest tests", "what should I test"
+3. Task defines sequential analysis protocol with progress reporting:
+   - Phase 1: Tech Stack Detection (package.json, config files)
+   - Phase 2: Route/Page Discovery (Next.js pages, React Router, etc.)
+   - Phase 3: API Endpoint Scanning (routes, handlers, OpenAPI)
+   - Phase 4: Database Schema Analysis (if present)
+   - Phase 5: Auth Configuration Detection
+4. `skills/harshjudge/templates/analysis-output-tmpl.md` created for consistent output format
+5. Output includes: tech stack summary, entry points table, prioritized scenario suggestions
+6. Task requires user confirmation before proceeding to scenario creation
 
 ---
 
@@ -73,18 +99,20 @@
 
 **Acceptance Criteria:**
 
-1. `skills/harshjudge/create.md` created
-2. Skill triggers on: "create scenario", "write test for", "new test"
-3. Skill defines scenario template with required sections:
-   - Frontmatter (id, tags, estimatedDuration)
+1. `skills/harshjudge/tasks/create-scenario.md` created as executable task workflow
+2. Task triggers defined in `skill.yaml` for: "create scenario", "write test for", "new test"
+3. `skills/harshjudge/templates/scenario-tmpl.yaml` created with required sections:
+   - Frontmatter (id, slug, title, tags, estimatedDuration)
    - Overview
    - Prerequisites
    - Steps (with Action, Playwright, Verify, DB Verification)
    - Expected Final State
-4. Skill enforces atomic steps (one action per step)
-5. Skill requires Playwright code blocks for each step
-6. Skill calls `saveScenario` tool to persist
-7. Skill presents draft for user review before saving
+4. `skills/harshjudge/checklists/scenario-checklist.md` created to enforce:
+   - Atomic steps (one action per step)
+   - Playwright code blocks for each step
+   - Verify assertions for each step
+5. Task workflow: gather requirements → generate draft → run checklist → user review → `saveScenario`
+6. Task presents draft for user review and revision before saving
 
 ---
 
@@ -96,17 +124,22 @@
 
 **Acceptance Criteria:**
 
-1. `skills/harshjudge/run.md` created
-2. Skill triggers on: "run scenario", "execute test", "run {scenario-name}"
-3. Skill defines execution protocol:
-   - Phase 1: Initialize (call `startRun`, read scenario)
-   - Phase 2: Execute steps (Playwright + `recordEvidence` for each)
-   - Phase 3: DB verification protocol (when applicable)
-   - Phase 4: Error protocol (capture diagnostics on failure)
-   - Phase 5: Success protocol (call `completeRun`)
-4. Skill enforces: never skip steps, always capture evidence, always complete run
-5. Skill defines output format for results summary
-6. Skill handles Playwright MCP errors gracefully
+1. `skills/harshjudge/tasks/run-scenario.md` created as executable task workflow
+2. Task triggers defined in `skill.yaml` for: "run scenario", "execute test", "run {scenario-name}"
+3. Task creates and updates `skill-state.yaml` in run directory for progress tracking:
+   - Tracks currentPhase, currentStep, completedSteps, checklistStatus
+   - Updates after each step completion
+   - Enables recovery/resume on interruption
+4. `skills/harshjudge/checklists/pre-run-checklist.md` created for pre-execution validation
+5. `skills/harshjudge/checklists/evidence-checklist.md` created to enforce evidence capture
+6. `skills/harshjudge/data/error-protocols.md` created with error handling procedures
+7. Task defines 5-phase execution protocol with state tracking:
+   - Phase 1: Initialize (run pre-run-checklist, call `startRun`, create skill-state.yaml)
+   - Phase 2: Execute steps (Playwright + `recordEvidence`, update skill-state.yaml per step)
+   - Phase 3: DB verification (when applicable, follow evidence-checklist)
+   - Phase 4: Error protocol (follow error-protocols.md, capture all diagnostics)
+   - Phase 5: Success protocol (call `completeRun`, finalize skill-state.yaml)
+8. Task handles Playwright MCP errors gracefully with retry logic
 
 ---
 
@@ -118,13 +151,15 @@
 
 **Acceptance Criteria:**
 
-1. `skills/harshjudge/status.md` created
-2. Skill triggers on: "test status", "scenario status", "harshjudge status"
-3. Skill calls `getStatus` tool
-4. Skill formats output as readable table:
-   - Scenario list with pass/fail indicators
-   - Summary statistics
-   - Recent failures with details
-5. Skill offers to show more details for specific scenarios
+1. `skills/harshjudge/tasks/check-status.md` created as executable task workflow
+2. Task triggers defined in `skill.yaml` for: "test status", "scenario status", "harshjudge status"
+3. Task calls `getStatus` MCP tool and formats output
+4. `skills/harshjudge/templates/status-output-tmpl.md` created for consistent formatting:
+   - Project summary header
+   - Scenario list table with pass/fail indicators (✓/✗/—)
+   - Summary statistics (total, passing, failing, never run)
+   - Recent failures with error details
+5. Task offers drill-down options for specific scenario details
+6. Task detects and reports any in-progress runs (via skill-state.yaml)
 
 ---

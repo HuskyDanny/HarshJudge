@@ -15,6 +15,7 @@ HarshJudge uses **file-system-as-database**. No traditional database is used.
         └── runs/
             └── {run-id}/                 # One directory per run
                 ├── result.json           # Run outcome
+                ├── skill-state.yaml      # Skill execution state (progress tracking)
                 └── evidence/
                     ├── step-01-{name}.png
                     ├── step-01-{name}.meta.json
@@ -125,6 +126,32 @@ avgDuration: 3200
     "viewport": { "width": 1280, "height": 720 }
   }
 }
+```
+
+### skill-state.yaml
+Tracks skill execution progress for recoverability and monitoring. Created by the run-scenario task.
+```yaml
+# Skill execution state - tracks progress through run-scenario task
+skillVersion: "1.0"
+startedAt: "2025-12-05T10:00:00Z"
+currentPhase: "execute-steps"    # init | execute-steps | db-verify | error | success | completed
+currentStep: 2
+totalSteps: 5
+completedSteps:
+  - step: 1
+    status: pass
+    evidenceCaptured: true
+    timestamp: "2025-12-05T10:00:05Z"
+  - step: 2
+    status: pass
+    evidenceCaptured: true
+    timestamp: "2025-12-05T10:00:12Z"
+checklistStatus:
+  pre-run: completed
+  evidence: in_progress
+lastAction: "Executing Playwright for step 3"
+error: null                      # Populated on failure: {step, message, diagnostics}
+completedAt: null                # Populated on completion
 ```
 
 ## 8.3 Indexing Strategy

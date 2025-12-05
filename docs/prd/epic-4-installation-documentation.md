@@ -11,7 +11,7 @@
 **Acceptance Criteria:**
 
 1. CLI implemented with commands: `init`, `dashboard`, `status`
-2. `harshjudge init` copies skills to `.claude/skills/` and initializes project
+2. `harshjudge init` copies YAML-structured skills (skill.yaml + tasks/ + templates/ + checklists/ + data/) to `.claude/skills/harshjudge/` and initializes project
 3. `harshjudge dashboard` starts the dashboard server
 4. `harshjudge status` prints quick status to terminal
 5. CLI has `--help` for all commands
@@ -45,11 +45,12 @@
 
 **Acceptance Criteria:**
 
-1. Documentation for each skill command
-2. Example conversations showing skill usage
-3. Best practices for scenario creation
-4. Tips for effective test organization
-5. FAQ section
+1. Documentation for skill architecture (YAML structure, tasks, templates, checklists)
+2. Documentation for each skill command with task workflow explanation
+3. Example conversations showing skill usage with state tracking
+4. Best practices for scenario creation (using scenario-checklist)
+5. Tips for effective test organization
+6. FAQ section including troubleshooting skill execution issues
 
 ---
 
