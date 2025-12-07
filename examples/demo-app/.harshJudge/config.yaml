@@ -1,0 +1,21 @@
+# HarshJudge Configuration
+# Generated for demo-app example project
+
+projectName: harshjudge-demo-app
+baseUrl: http://localhost:3000
+
+# Project-specific settings
+settings:
+  defaultTimeout: 30000
+  screenshotOnFailure: true
+  screenshotOnSuccess: true
+
+# Test credentials for demo app
+testData:
+  users:
+    - email: demo@example.com
+      password: demo123
+      name: Demo User
+    - email: test@example.com
+      password: test123
+      name: Test User

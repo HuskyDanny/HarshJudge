@@ -1,0 +1,8 @@
+# HarshJudge gitignore
+
+# Ignore run evidence (large screenshot files)
+scenarios/*/runs/*/evidence/
+
+# Keep scenario definitions and meta
+!scenarios/*/scenario.md
+!scenarios/*/meta.yaml
