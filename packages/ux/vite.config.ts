@@ -1,7 +1,8 @@
-import { defineConfig } from 'vitest/config';
+import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { resolve } from 'path';
 
+// https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
   resolve: {
@@ -14,10 +15,13 @@ export default defineConfig({
       '@/styles': resolve(__dirname, './src/styles'),
     },
   },
-  test: {
-    globals: true,
-    environment: 'jsdom',
-    include: ['tests/**/*.test.ts', 'tests/**/*.test.tsx'],
-    setupFiles: ['./tests/setup.ts'],
+  server: {
+    port: 5173,
+  },
+  build: {
+    outDir: 'dist',
+    rollupOptions: {
+      external: ['chokidar', 'fs/promises', 'path'],
+    },
   },
 });
