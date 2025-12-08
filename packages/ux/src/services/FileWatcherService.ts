@@ -1,83 +1,49 @@
-import chokidar, { type FSWatcher } from 'chokidar';
-
 /**
- * Ignored file patterns for file watching
+ * Browser-safe FileWatcherService that uses polling instead of chokidar
+ * For server-side file watching, see the server module
  */
-const IGNORED_PATTERNS = [
-  /\.swp$/,           // Vim swap files
-  /\.tmp$/,           // Temp files
-  /~$/,               // Backup files
-  /\.DS_Store$/,      // macOS
-  /Thumbs\.db$/,      // Windows
-  /node_modules/,     // Dependencies
-  /\.git/,            // Git directory
-];
 
 /**
- * Service for watching file system changes with debouncing
+ * Service for watching file system changes via polling
+ * Works in browser environment without Node.js dependencies
  */
 export class FileWatcherService {
-  private watcher: FSWatcher | null = null;
   private callbacks: Set<() => void> = new Set();
-  private debounceTimer: ReturnType<typeof setTimeout> | null = null;
-  private debounceMs: number;
+  private pollInterval: ReturnType<typeof setInterval> | null = null;
+  private pollMs: number;
+  private isActive: boolean = false;
 
-  constructor(debounceMs: number = 300) {
-    this.debounceMs = debounceMs;
+  constructor(pollMs: number = 3000) {
+    this.pollMs = pollMs;
   }
 
   /**
-   * Start watching a directory for changes
+   * Start polling for changes
    */
-  start(basePath: string): void {
-    if (this.watcher) {
+  start(_basePath: string): void {
+    if (this.pollInterval) {
       this.stop();
     }
 
-    this.watcher = chokidar.watch(basePath, {
-      ignored: (path: string) => this.shouldIgnore(path),
-      persistent: true,
-      ignoreInitial: true,
-      depth: 5,
-      awaitWriteFinish: {
-        stabilityThreshold: 100,
-        pollInterval: 50,
-      },
-    });
+    this.isActive = true;
 
-    this.watcher.on('all', (_event: string, _path: string) => {
-      this.debouncedNotify();
-    });
-
-    this.watcher.on('error', (error: Error) => {
-      console.error('FileWatcher error:', error);
-    });
+    // Poll the API for updates
+    this.pollInterval = setInterval(() => {
+      this.notifyCallbacks();
+    }, this.pollMs);
   }
 
   /**
-   * Check if a path should be ignored
+   * Notify all callbacks
    */
-  private shouldIgnore(path: string): boolean {
-    return IGNORED_PATTERNS.some((pattern) => pattern.test(path));
-  }
-
-  /**
-   * Notify callbacks with debouncing
-   */
-  private debouncedNotify(): void {
-    if (this.debounceTimer) {
-      clearTimeout(this.debounceTimer);
-    }
-
-    this.debounceTimer = setTimeout(() => {
-      this.callbacks.forEach((cb) => {
-        try {
-          cb();
-        } catch (error) {
-          console.error('FileWatcher callback error:', error);
-        }
-      });
-    }, this.debounceMs);
+  private notifyCallbacks(): void {
+    this.callbacks.forEach((cb) => {
+      try {
+        cb();
+      } catch (error) {
+        console.error('FileWatcher callback error:', error);
+      }
+    });
   }
 
   /**
@@ -90,25 +56,21 @@ export class FileWatcherService {
   }
 
   /**
-   * Stop watching and clean up
+   * Stop polling and clean up
    */
   stop(): void {
-    if (this.debounceTimer) {
-      clearTimeout(this.debounceTimer);
-      this.debounceTimer = null;
+    if (this.pollInterval) {
+      clearInterval(this.pollInterval);
+      this.pollInterval = null;
     }
-
-    if (this.watcher) {
-      this.watcher.close();
-      this.watcher = null;
-    }
+    this.isActive = false;
   }
 
   /**
    * Check if watcher is currently active
    */
   isWatching(): boolean {
-    return this.watcher !== null;
+    return this.isActive;
   }
 }
 
