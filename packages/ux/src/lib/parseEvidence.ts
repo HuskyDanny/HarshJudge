@@ -6,8 +6,19 @@ export interface ParsedStep {
   number: number;
   /** Action performed (e.g., 'navigate', 'click', 'fill') */
   action: string;
-  /** Full path to the evidence file */
+  /** URL to access the evidence file via API */
   path: string;
+}
+
+/**
+ * Convert an absolute file path to an API URL
+ * Absolute paths like "C:\Users\..." are converted to "/api/file?path=..."
+ */
+function toApiUrl(filePath: string): string {
+  if (/^[A-Z]:[/\\]/i.test(filePath) || filePath.startsWith('/')) {
+    return `/api/file?path=${encodeURIComponent(filePath)}`;
+  }
+  return filePath;
 }
 
 /**
@@ -20,19 +31,19 @@ export interface ParsedStep {
 export function parseEvidencePaths(paths: string[]): ParsedStep[] {
   return paths
     .filter((p) => /\.(png|jpg|jpeg)$/i.test(p))
-    .map((path) => {
+    .map((filePath) => {
       // Extract filename from path (works with both / and \ separators)
-      const filename = path.split(/[/\\]/).pop() || '';
+      const filename = filePath.split(/[/\\]/).pop() || '';
       const match = filename.match(/^step-(\d+)-(.+)\.(png|jpg|jpeg)$/i);
 
       if (!match || !match[1] || !match[2]) {
-        return { number: 0, action: 'unknown', path };
+        return { number: 0, action: 'unknown', path: toApiUrl(filePath) };
       }
 
       return {
         number: parseInt(match[1], 10),
         action: match[2],
-        path,
+        path: toApiUrl(filePath),
       };
     })
     .filter((step) => step.number > 0)

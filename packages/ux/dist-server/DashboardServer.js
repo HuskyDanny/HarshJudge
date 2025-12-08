@@ -103,10 +103,49 @@ export class DashboardServer {
      * Handle API requests
      */
     async handleApiRequest(url, res) {
-        // Parse URL and remove query string
-        const cleanUrl = url.split('?')[0] ?? '';
+        // Parse URL and extract query string
+        const urlParts = url.split('?');
+        const cleanUrl = urlParts[0] ?? '';
+        const queryString = urlParts[1] ?? '';
         const parts = cleanUrl.replace('/api/', '').split('/').map(decodeURIComponent);
         try {
+            // GET /api/file?path=<absolute-path> - Serve evidence files
+            if (parts[0] === 'file') {
+                const params = new URLSearchParams(queryString);
+                const filePath = params.get('path');
+                if (!filePath) {
+                    res.writeHead(400, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ error: 'Missing path parameter' }));
+                    return;
+                }
+                // Security: only allow serving files from .harshJudge directories
+                if (!filePath.includes('.harshJudge')) {
+                    res.writeHead(403, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ error: 'Access denied: can only serve HarshJudge evidence files' }));
+                    return;
+                }
+                // Security: prevent directory traversal
+                if (filePath.includes('..')) {
+                    res.writeHead(403, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ error: 'Access denied: path traversal not allowed' }));
+                    return;
+                }
+                try {
+                    const content = await readFile(filePath);
+                    const contentType = this.getContentType(filePath);
+                    res.writeHead(200, {
+                        'Content-Type': contentType,
+                        'Cache-Control': 'public, max-age=3600',
+                    });
+                    res.end(content);
+                    return;
+                }
+                catch {
+                    res.writeHead(404, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ error: 'File not found' }));
+                    return;
+                }
+            }
             // GET /api/projects
             if (parts[0] === 'projects' && parts.length === 1) {
                 const projects = await this.getProjects();
