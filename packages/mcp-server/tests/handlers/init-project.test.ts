@@ -16,6 +16,8 @@ describe('handleInitProject', () => {
     vol.reset();
     vol.mkdirSync('/project', { recursive: true });
     fs = new FileSystemService('/project');
+    // Set test environment to skip dashboard spawning
+    process.env.VITEST = 'true';
   });
 
   describe('successful initialization', () => {
@@ -88,6 +90,17 @@ describe('handleInitProject', () => {
       expect(gitignore).toContain('# HarshJudge');
       expect(gitignore).toContain('scenarios/*/runs/*/evidence/*.png');
       expect(gitignore).toContain('scenarios/*/runs/*/evidence/*.html');
+    });
+
+    it('returns dashboardUrl and message', async () => {
+      const result = await handleInitProject(
+        { projectName: 'Test' },
+        fs
+      );
+
+      expect(result.dashboardUrl).toBeDefined();
+      expect(result.message).toBeDefined();
+      expect(result.message).toContain('HarshJudge initialized successfully');
     });
   });
 

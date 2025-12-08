@@ -16,6 +16,8 @@ export interface InitProjectResult {
   projectPath: string;
   configPath: string;
   scenariosPath: string;
+  dashboardUrl?: string;
+  message?: string;
 }
 
 // ============================================================

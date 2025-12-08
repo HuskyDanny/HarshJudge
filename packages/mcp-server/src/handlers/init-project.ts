@@ -1,3 +1,5 @@
+import { spawn } from 'child_process';
+import { createServer } from 'net';
 import {
   InitProjectParamsSchema,
   type InitProjectResult,
@@ -9,6 +11,7 @@ const HARSH_JUDGE_DIR = '.harshJudge';
 const CONFIG_FILE = 'config.yaml';
 const SCENARIOS_DIR = 'scenarios';
 const GITIGNORE_FILE = '.gitignore';
+const DEFAULT_DASHBOARD_PORT = 3001;
 
 const GITIGNORE_CONTENT = `# HarshJudge
 # Ignore large evidence files in CI
@@ -17,8 +20,100 @@ scenarios/*/runs/*/evidence/*.html
 `;
 
 /**
+ * Check if a port is available.
+ */
+async function isPortAvailable(port: number): Promise<boolean> {
+  return new Promise((resolve) => {
+    const server = createServer();
+    server.once('error', () => resolve(false));
+    server.once('listening', () => {
+      server.close();
+      resolve(true);
+    });
+    server.listen(port, '127.0.0.1');
+  });
+}
+
+/**
+ * Find an available port starting from the given port.
+ */
+async function findAvailablePort(startPort: number, maxAttempts: number = 10): Promise<number> {
+  for (let i = 0; i < maxAttempts; i++) {
+    const port = startPort + i;
+    if (await isPortAvailable(port)) {
+      return port;
+    }
+  }
+  throw new Error(`No available port found starting from ${startPort}`);
+}
+
+/**
+ * Wait for a port to become unavailable (meaning server started).
+ */
+async function waitForServer(port: number, timeoutMs: number = 5000): Promise<boolean> {
+  const startTime = Date.now();
+  while (Date.now() - startTime < timeoutMs) {
+    if (!(await isPortAvailable(port))) {
+      return true; // Server is now listening
+    }
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+  return false;
+}
+
+/**
+ * Spawn the dashboard server as a detached process.
+ * Returns the dashboard URL or undefined if spawning is skipped/failed.
+ */
+async function spawnDashboard(port: number): Promise<string | undefined> {
+  // Skip dashboard spawning in test environment
+  if (process.env['NODE_ENV'] === 'test' || process.env['VITEST']) {
+    console.error(`[HarshJudge] Skipping dashboard spawn in test environment`);
+    return `http://localhost:${port}`;
+  }
+
+  // Check if already running on this port
+  if (!(await isPortAvailable(port))) {
+    console.error(`[HarshJudge] Dashboard already running on port ${port}`);
+    return `http://localhost:${port}`;
+  }
+
+  // Use node to run the CLI dashboard command directly (since package isn't published to npm)
+  const nodeCommand = process.platform === 'win32' ? 'node.exe' : 'node';
+  // Resolve CLI path relative to this module (mcp-server -> cli)
+  const cliPath = new URL('../../cli/dist/index.js', import.meta.url).pathname.replace(/^/([A-Z]:)/, '');
+
+  try {
+    // Spawn the dashboard as a detached process
+    const dashboard = spawn(nodeCommand, [cliPath, 'dashboard', '--port', String(port), '--no-open'], {
+      detached: true,
+      stdio: 'ignore',
+      shell: true,
+      windowsHide: true,
+    });
+
+    // Unref to allow parent process to exit independently
+    dashboard.unref();
+
+    console.error(`[HarshJudge] Spawned dashboard process (PID: ${dashboard.pid}) on port ${port}`);
+
+    // Wait for the server to start
+    const started = await waitForServer(port, 5000);
+    if (!started) {
+      console.error(`[HarshJudge] Dashboard may not have started properly, but process was spawned`);
+    }
+
+    return `http://localhost:${port}`;
+  } catch (error) {
+    console.error(`[HarshJudge] Failed to spawn dashboard: ${error}`);
+    return undefined;
+  }
+}
+
+/**
  * Initializes a HarshJudge project in the current directory.
  * Creates the .harshJudge directory structure with config and gitignore.
+ * Automatically spawns the dashboard server.
  */
 export async function handleInitProject(
   params: unknown,
@@ -52,11 +147,32 @@ export async function handleInitProject(
   const gitignorePath = `${HARSH_JUDGE_DIR}/${GITIGNORE_FILE}`;
   await fs.writeFile(gitignorePath, GITIGNORE_CONTENT);
 
-  // 6. Return success result
+  // 6. Spawn dashboard server
+  let dashboardUrl: string | undefined;
+  let message = 'HarshJudge initialized successfully';
+
+  try {
+    const port = await findAvailablePort(DEFAULT_DASHBOARD_PORT);
+    dashboardUrl = await spawnDashboard(port);
+    if (dashboardUrl) {
+      message = `HarshJudge initialized successfully. Dashboard running at ${dashboardUrl}`;
+    } else {
+      message = `HarshJudge initialized successfully. Dashboard could not be started automatically - run 'harshjudge dashboard' manually.`;
+    }
+    console.error(`[HarshJudge] ${message}`);
+  } catch (error) {
+    // Dashboard spawn failure is non-fatal - project is still initialized
+    console.error(`[HarshJudge] Warning: Could not start dashboard: ${error}`);
+    message = `HarshJudge initialized successfully. Dashboard could not be started automatically - run 'harshjudge dashboard' manually.`;
+  }
+
+  // 7. Return success result
   return {
     success: true,
     projectPath: HARSH_JUDGE_DIR,
     configPath,
     scenariosPath: `${HARSH_JUDGE_DIR}/${SCENARIOS_DIR}`,
+    dashboardUrl,
+    message,
   };
 }

@@ -59,7 +59,7 @@ function getDashboardDistPath(): string {
   ];
 
   // Return the most likely path for monorepo development
-  return possiblePaths[2] ?? possiblePaths[1] ?? possiblePaths[0] ?? '';
+  return possiblePaths[1] as string;
 }
 
 /**
