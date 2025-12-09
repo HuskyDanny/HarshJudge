@@ -1,4 +1,5 @@
 import { type FC, useState } from 'react';
+import { useFileWatcherOptional } from '@/contexts/FileWatcherContext';
 
 interface HeaderProps {
   /** Application title */
@@ -10,10 +11,21 @@ interface HeaderProps {
  */
 export const Header: FC<HeaderProps> = ({ title = 'HarshJudge' }) => {
   const [isDarkMode, setIsDarkMode] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const fileWatcher = useFileWatcherOptional();
 
   const toggleTheme = () => {
     setIsDarkMode((prev) => !prev);
     // Theme toggle functionality will be implemented in a future story
+  };
+
+  const handleRefresh = () => {
+    if (fileWatcher?.triggerRefresh) {
+      setIsRefreshing(true);
+      fileWatcher.triggerRefresh();
+      // Reset animation after a short delay
+      setTimeout(() => setIsRefreshing(false), 500);
+    }
   };
 
   return (
@@ -27,6 +39,29 @@ export const Header: FC<HeaderProps> = ({ title = 'HarshJudge' }) => {
       </div>
 
       <div className="flex items-center gap-2">
+        {/* Refresh Button */}
+        <button
+          type="button"
+          onClick={handleRefresh}
+          className="flex items-center justify-center w-8 h-8 text-gray-400 transition-colors rounded hover:text-white hover:bg-gray-800 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:outline-none"
+          aria-label="Refresh data"
+          title="Refresh data"
+        >
+          <svg
+            className={`w-5 h-5 ${isRefreshing ? 'animate-spin' : ''}`}
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+            />
+          </svg>
+        </button>
+
         {/* Theme Toggle */}
         <button
           type="button"

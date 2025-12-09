@@ -19,6 +19,7 @@ export class FileWatcherService {
 
   /**
    * Start polling for changes
+   * If pollMs is 0 or negative, auto-polling is disabled
    */
   start(_basePath: string): void {
     if (this.pollInterval) {
@@ -27,10 +28,12 @@ export class FileWatcherService {
 
     this.isActive = true;
 
-    // Poll the API for updates
-    this.pollInterval = setInterval(() => {
-      this.notifyCallbacks();
-    }, this.pollMs);
+    // Only start polling if pollMs > 0, otherwise disable auto-refresh
+    if (this.pollMs > 0) {
+      this.pollInterval = setInterval(() => {
+        this.notifyCallbacks();
+      }, this.pollMs);
+    }
   }
 
   /**
@@ -74,5 +77,6 @@ export class FileWatcherService {
   }
 }
 
-// Default singleton instance
-export const fileWatcher = new FileWatcherService();
+// Default singleton instance - disabled auto-polling (0) to prevent UI flashing
+// Users can manually refresh with the triggerRefresh context method
+export const fileWatcher = new FileWatcherService(0);
