@@ -82,10 +82,20 @@ export class FileSystemService {
   }
 
   /**
-   * Reads a file as a string.
+   * Reads a file as a string (default) or Buffer (binary mode).
+   * Supports both relative paths (resolved against basePath) and absolute paths.
    */
-  async readFile(path: string): Promise<string> {
-    return readFile(this.resolve(path), 'utf-8');
+  async readFile(path: string): Promise<string>;
+  async readFile(path: string, binary: true): Promise<Buffer>;
+  async readFile(path: string, binary?: boolean): Promise<string | Buffer> {
+    // Detect absolute paths (Windows C:\... or Unix /...)
+    const isAbsolute = /^[A-Z]:[/\\]/i.test(path) || path.startsWith('/');
+    const fullPath = isAbsolute ? path : this.resolve(path);
+
+    if (binary) {
+      return readFile(fullPath);
+    }
+    return readFile(fullPath, 'utf-8');
   }
 
   /**

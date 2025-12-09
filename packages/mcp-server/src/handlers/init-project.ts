@@ -64,8 +64,10 @@ async function waitForServer(port: number, timeoutMs: number = 5000): Promise<bo
 /**
  * Spawn the dashboard server as a detached process.
  * Returns the dashboard URL or undefined if spawning is skipped/failed.
+ * @param port - Port to run the dashboard on
+ * @param projectDir - Project directory to run the dashboard from
  */
-async function spawnDashboard(port: number): Promise<string | undefined> {
+async function spawnDashboard(port: number, projectDir: string): Promise<string | undefined> {
   // Skip dashboard spawning in test environment
   if (process.env['NODE_ENV'] === 'test' || process.env['VITEST']) {
     console.error(`[HarshJudge] Skipping dashboard spawn in test environment`);
@@ -80,12 +82,14 @@ async function spawnDashboard(port: number): Promise<string | undefined> {
 
   // Use node to run the CLI dashboard command directly (since package isn't published to npm)
   const nodeCommand = process.platform === 'win32' ? 'node.exe' : 'node';
-  // Resolve CLI path relative to this module (mcp-server -> cli)
-  const cliPath = new URL('../../cli/dist/index.js', import.meta.url).pathname.replace(/^/([A-Z]:)/, '');
+  // Resolve CLI path relative to this module (mcp-server/dist/handlers/ -> cli/dist/)
+  // Need 3 levels up: handlers/ -> dist/ -> mcp-server/ -> packages/
+  const cliPath = new URL('../../../cli/dist/index.js', import.meta.url).pathname.replace(/^\/([A-Z]:)/i, '$1');
 
   try {
-    // Spawn the dashboard as a detached process
+    // Spawn the dashboard as a detached process from the project directory
     const dashboard = spawn(nodeCommand, [cliPath, 'dashboard', '--port', String(port), '--no-open'], {
+      cwd: projectDir,
       detached: true,
       stdio: 'ignore',
       shell: true,
@@ -153,7 +157,7 @@ export async function handleInitProject(
 
   try {
     const port = await findAvailablePort(DEFAULT_DASHBOARD_PORT);
-    dashboardUrl = await spawnDashboard(port);
+    dashboardUrl = await spawnDashboard(port, process.cwd());
     if (dashboardUrl) {
       message = `HarshJudge initialized successfully. Dashboard running at ${dashboardUrl}`;
     } else {

@@ -24,6 +24,22 @@ const EVIDENCE_EXTENSIONS: Record<string, string> = {
 const BINARY_TYPES = new Set(['screenshot']);
 
 /**
+ * Check if a string looks like a file path (absolute path)
+ * Supports Windows (C:\...) and Unix (/...) paths
+ */
+function isFilePath(data: string): boolean {
+  // Windows absolute path (e.g., C:\Users\... or D:/path/...)
+  if (/^[A-Z]:[/\\]/i.test(data)) {
+    return true;
+  }
+  // Unix absolute path
+  if (data.startsWith('/') && !data.includes(' ') && data.includes('.')) {
+    return true;
+  }
+  return false;
+}
+
+/**
  * Finds the run directory by searching all scenarios for the given runId.
  * Returns the full path to the run directory or null if not found.
  */
@@ -100,9 +116,20 @@ export async function handleRecordEvidence(
   let fileSize: number;
 
   if (BINARY_TYPES.has(validated.type)) {
-    // Decode base64 for binary types
-    dataToWrite = Buffer.from(validated.data, 'base64');
-    fileSize = dataToWrite.length;
+    // Check if data is a file path (from Playwright screenshot) or base64 data
+    if (isFilePath(validated.data)) {
+      // Read binary file directly from the path
+      try {
+        dataToWrite = await fs.readFile(validated.data, true);
+        fileSize = dataToWrite.length;
+      } catch {
+        throw new Error(`Cannot read screenshot file: ${validated.data}`);
+      }
+    } else {
+      // Decode base64 for binary types
+      dataToWrite = Buffer.from(validated.data, 'base64');
+      fileSize = dataToWrite.length;
+    }
   } else {
     // Write as-is for text types
     dataToWrite = validated.data;
