@@ -1,11 +1,12 @@
 import { type FC, useState, useMemo, useCallback } from 'react';
 import { useRunDetail, useKeyboardNavigation } from '@/hooks';
-import { parseEvidencePaths } from '@/lib';
+import { parseEvidencePaths, parseAllEvidence } from '@/lib';
 import { StatusBadge } from '../common/StatusBadge';
 import { StepTimeline } from '../detail/StepTimeline';
 import { ScreenshotViewer } from '../detail/ScreenshotViewer';
 import { StepMetadata } from '../detail/StepMetadata';
 import { LogSection } from '../detail/LogSection';
+import { EvidencePanel } from '../detail/EvidencePanel';
 import { EmptyState } from '../common/EmptyState';
 
 interface RunDetailPanelProps {
@@ -38,10 +39,27 @@ export const RunDetailPanel: FC<RunDetailPanelProps> = ({
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [isZoomed, setIsZoomed] = useState(false);
 
-  // Parse evidence paths to extract step info
+  // Parse evidence paths to extract step info (screenshots only for timeline)
   const steps = useMemo(
     () => parseEvidencePaths(runDetail?.evidencePaths || []),
     [runDetail]
+  );
+
+  // Parse all evidence types for the evidence panel
+  const allEvidence = useMemo(
+    () => parseAllEvidence(runDetail?.evidencePaths || []),
+    [runDetail]
+  );
+
+  // Check if there's non-screenshot evidence to show
+  const hasNonScreenshotEvidence = useMemo(
+    () =>
+      allEvidence.logs.length > 0 ||
+      allEvidence.dbSnapshots.length > 0 ||
+      allEvidence.networkLogs.length > 0 ||
+      allEvidence.htmlSnapshots.length > 0 ||
+      allEvidence.custom.length > 0,
+    [allEvidence]
   );
 
   // Get current step
@@ -200,6 +218,14 @@ export const RunDetailPanel: FC<RunDetailPanelProps> = ({
             defaultExpanded={true}
           />
         </div>
+      )}
+
+      {/* Evidence panel for logs, DB verification, etc. */}
+      {hasNonScreenshotEvidence && (
+        <EvidencePanel
+          evidence={allEvidence}
+          currentStep={currentStep?.number}
+        />
       )}
 
       {/* Keyboard hint */}

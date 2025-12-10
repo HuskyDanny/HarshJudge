@@ -7,4 +7,11 @@ export {
   formatDuration,
 } from './parsers';
 
-export { parseEvidencePaths, type ParsedStep } from './parseEvidence';
+export {
+  parseEvidencePaths,
+  parseAllEvidence,
+  type ParsedStep,
+  type ParsedEvidence,
+  type ParsedEvidenceCollection,
+  type EvidenceType,
+} from './parseEvidence';
