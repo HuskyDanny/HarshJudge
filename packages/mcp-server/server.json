@@ -1,0 +1,13 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-07-09/server.schema.json",
+  "name": "io.github.allenpan/harshjudge",
+  "description": "AI-native E2E testing orchestration MCP server for Claude Code. Create, run, and manage end-to-end test scenarios with visual evidence capture.",
+  "version": "0.1.0",
+  "packages": [
+    {
+      "registry_type": "npm",
+      "identifier": "@allenpan/harshjudge-mcp",
+      "version": "0.1.0"
+    }
+  ]
+}
