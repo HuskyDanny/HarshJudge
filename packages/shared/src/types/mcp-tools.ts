@@ -114,3 +114,52 @@ export const GetStatusParamsSchema = z.object({
 export type GetStatusParams = z.infer<typeof GetStatusParamsSchema>;
 
 export type GetStatusResult = ProjectStatus | ScenarioDetail;
+
+// ============================================================
+// openDashboard
+// ============================================================
+
+export const OpenDashboardParamsSchema = z.object({
+  port: z.number().int().min(1024).max(65535).optional(),
+  openBrowser: z.boolean().optional().default(true),
+});
+export type OpenDashboardParams = z.infer<typeof OpenDashboardParamsSchema>;
+
+export interface OpenDashboardResult {
+  success: boolean;
+  url: string;
+  port: number;
+  pid: number;
+  alreadyRunning: boolean;
+  message: string;
+}
+
+// ============================================================
+// closeDashboard
+// ============================================================
+
+export const CloseDashboardParamsSchema = z.object({});
+export type CloseDashboardParams = z.infer<typeof CloseDashboardParamsSchema>;
+
+export interface CloseDashboardResult {
+  success: boolean;
+  wasRunning: boolean;
+  message: string;
+}
+
+// ============================================================
+// getDashboardStatus
+// ============================================================
+
+export const GetDashboardStatusParamsSchema = z.object({});
+export type GetDashboardStatusParams = z.infer<typeof GetDashboardStatusParamsSchema>;
+
+export interface GetDashboardStatusResult {
+  running: boolean;
+  pid?: number;
+  port?: number;
+  url?: string;
+  startedAt?: string;
+  stale?: boolean;
+  message: string;
+}

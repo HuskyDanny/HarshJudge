@@ -28,6 +28,9 @@ export {
   RecordEvidenceParamsSchema,
   CompleteRunParamsSchema,
   GetStatusParamsSchema,
+  OpenDashboardParamsSchema,
+  CloseDashboardParamsSchema,
+  GetDashboardStatusParamsSchema,
 } from './types/mcp-tools.js';
 
 export type {
@@ -43,6 +46,12 @@ export type {
   CompleteRunResult,
   GetStatusParams,
   GetStatusResult,
+  OpenDashboardParams,
+  OpenDashboardResult,
+  CloseDashboardParams,
+  CloseDashboardResult,
+  GetDashboardStatusParams,
+  GetDashboardStatusResult,
 } from './types/mcp-tools.js';
 
 // Result utility

@@ -12,6 +12,9 @@ import { handleStartRun } from './handlers/start-run.js';
 import { handleRecordEvidence } from './handlers/record-evidence.js';
 import { handleCompleteRun } from './handlers/complete-run.js';
 import { handleGetStatus } from './handlers/get-status.js';
+import { handleOpenDashboard } from './handlers/open-dashboard.js';
+import { handleCloseDashboard } from './handlers/close-dashboard.js';
+import { handleGetDashboardStatus } from './handlers/get-dashboard-status.js';
 
 // Tool schemas for MCP registration
 const TOOLS = [
@@ -98,6 +101,33 @@ const TOOLS = [
       },
     },
   },
+  {
+    name: 'openDashboard',
+    description: 'Start or open the dashboard server. If already running, returns the existing URL. Optionally opens browser.',
+    inputSchema: {
+      type: 'object' as const,
+      properties: {
+        port: { type: 'number', description: 'Preferred port (default: 3001, auto-increments if busy)' },
+        openBrowser: { type: 'boolean', description: 'Open browser after starting (default: true)' },
+      },
+    },
+  },
+  {
+    name: 'closeDashboard',
+    description: 'Stop the dashboard server and free up resources',
+    inputSchema: {
+      type: 'object' as const,
+      properties: {},
+    },
+  },
+  {
+    name: 'getDashboardStatus',
+    description: 'Check if the dashboard is running, get URL, port, and PID',
+    inputSchema: {
+      type: 'object' as const,
+      properties: {},
+    },
+  },
 ];
 
 // Handler map
@@ -108,6 +138,9 @@ const HANDLERS: Record<string, (params: unknown) => Promise<unknown>> = {
   recordEvidence: handleRecordEvidence,
   completeRun: handleCompleteRun,
   getStatus: handleGetStatus,
+  openDashboard: handleOpenDashboard,
+  closeDashboard: handleCloseDashboard,
+  getDashboardStatus: handleGetDashboardStatus,
 };
 
 /**
