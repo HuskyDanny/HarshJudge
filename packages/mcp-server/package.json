@@ -1,6 +1,6 @@
 {
   "name": "@allenpan/harshjudge-mcp",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "AI-native E2E testing orchestration MCP server for Claude Code. Create, run, and manage end-to-end test scenarios with visual evidence capture.",
   "type": "module",
   "main": "./dist/index.js",
