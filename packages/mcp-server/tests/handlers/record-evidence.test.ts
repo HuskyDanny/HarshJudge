@@ -47,8 +47,12 @@ describe('handleRecordEvidence', () => {
       ).toBe(true);
     });
 
-    it('writes screenshot as binary from base64', async () => {
-      const base64Data = Buffer.from('fake png data').toString('base64');
+    it('writes screenshot from file path', async () => {
+      // Create a mock screenshot file
+      const screenshotPath = '/tmp/playwright-screenshot.png';
+      const screenshotData = 'fake png data';
+      vol.mkdirSync('/tmp', { recursive: true });
+      vol.writeFileSync(screenshotPath, screenshotData);
 
       const result = await handleRecordEvidence(
         {
@@ -56,7 +60,7 @@ describe('handleRecordEvidence', () => {
           step: 2,
           type: 'screenshot',
           name: 'login-page',
-          data: base64Data,
+          data: screenshotPath,
         },
         fs
       );
@@ -65,9 +69,24 @@ describe('handleRecordEvidence', () => {
       const filePath = `/project/.harshJudge/scenarios/login-test/runs/${runId}/evidence/step-02-login-page.png`;
       expect(vol.existsSync(filePath)).toBe(true);
 
-      // Verify it was decoded from base64
+      // Verify content was copied from the file
       const content = vol.readFileSync(filePath);
       expect(content.toString()).toBe('fake png data');
+    });
+
+    it('throws error if screenshot data is not a file path', async () => {
+      await expect(
+        handleRecordEvidence(
+          {
+            runId,
+            step: 2,
+            type: 'screenshot',
+            name: 'login-page',
+            data: 'not-a-file-path',
+          },
+          fs
+        )
+      ).rejects.toThrow('must be an absolute file path');
     });
 
     it('writes metadata file', async () => {
@@ -127,9 +146,11 @@ describe('handleRecordEvidence', () => {
       expect(result.fileSize).toBe(Buffer.byteLength(data, 'utf-8'));
     });
 
-    it('returns correct file size for binary', async () => {
+    it('returns correct file size for screenshot from file', async () => {
       const originalData = 'binary content here';
-      const base64Data = Buffer.from(originalData).toString('base64');
+      const screenshotPath = '/tmp/test-screenshot.png';
+      vol.mkdirSync('/tmp', { recursive: true });
+      vol.writeFileSync(screenshotPath, originalData);
 
       const result = await handleRecordEvidence(
         {
@@ -137,7 +158,7 @@ describe('handleRecordEvidence', () => {
           step: 1,
           type: 'screenshot',
           name: 'test',
-          data: base64Data,
+          data: screenshotPath,
         },
         fs
       );
@@ -165,20 +186,21 @@ describe('handleRecordEvidence', () => {
     });
 
     it('handles all evidence types', async () => {
+      // Create a mock screenshot file for the screenshot type
+      const screenshotPath = '/tmp/all-types-screenshot.png';
+      vol.mkdirSync('/tmp', { recursive: true });
+      vol.writeFileSync(screenshotPath, 'binary data');
+
       const types = [
-        { type: 'screenshot', ext: 'png' },
-        { type: 'db_snapshot', ext: 'json' },
-        { type: 'console_log', ext: 'txt' },
-        { type: 'network_log', ext: 'json' },
-        { type: 'html_snapshot', ext: 'html' },
-        { type: 'custom', ext: 'json' },
+        { type: 'screenshot', ext: 'png', data: screenshotPath },
+        { type: 'db_snapshot', ext: 'json', data: '{"key": "value"}' },
+        { type: 'console_log', ext: 'txt', data: 'log output' },
+        { type: 'network_log', ext: 'json', data: '{"requests": []}' },
+        { type: 'html_snapshot', ext: 'html', data: '<html></html>' },
+        { type: 'custom', ext: 'json', data: '{"custom": true}' },
       ];
 
-      for (const { type, ext } of types) {
-        const data = type === 'screenshot'
-          ? Buffer.from('binary').toString('base64')
-          : 'text data';
-
+      for (const { type, ext, data } of types) {
         const result = await handleRecordEvidence(
           {
             runId,

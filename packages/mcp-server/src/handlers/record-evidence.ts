@@ -20,20 +20,20 @@ const EVIDENCE_EXTENSIONS: Record<string, string> = {
   custom: 'json',
 };
 
-// Binary types that need base64 decoding
+// Binary types that require file path input
 const BINARY_TYPES = new Set(['screenshot']);
 
 /**
- * Check if a string looks like a file path (absolute path)
+ * Check if a string looks like an absolute file path
  * Supports Windows (C:\...) and Unix (/...) paths
  */
-function isFilePath(data: string): boolean {
+function isAbsoluteFilePath(data: string): boolean {
   // Windows absolute path (e.g., C:\Users\... or D:/path/...)
   if (/^[A-Z]:[/\\]/i.test(data)) {
     return true;
   }
-  // Unix absolute path
-  if (data.startsWith('/') && !data.includes(' ') && data.includes('.')) {
+  // Unix absolute path (starts with /)
+  if (data.startsWith('/')) {
     return true;
   }
   return false;
@@ -111,24 +111,25 @@ export async function handleRecordEvidence(
   const filePath = `${evidencePath}/${fileName}`;
   const metaPath = `${evidencePath}/${metaFileName}`;
 
-  // 6. Decode and write evidence data
+  // 6. Read/write evidence data
   let dataToWrite: string | Buffer;
   let fileSize: number;
 
   if (BINARY_TYPES.has(validated.type)) {
-    // Check if data is a file path (from Playwright screenshot) or base64 data
-    if (isFilePath(validated.data)) {
-      // Read binary file directly from the path
-      try {
-        dataToWrite = await fs.readFile(validated.data, true);
-        fileSize = dataToWrite.length;
-      } catch {
-        throw new Error(`Cannot read screenshot file: ${validated.data}`);
-      }
-    } else {
-      // Decode base64 for binary types
-      dataToWrite = Buffer.from(validated.data, 'base64');
+    // For screenshot type, data MUST be an absolute file path
+    if (!isAbsoluteFilePath(validated.data)) {
+      throw new Error(
+        `For type="${validated.type}", data must be an absolute file path to the image file. ` +
+        `Got: "${validated.data.substring(0, 50)}${validated.data.length > 50 ? '...' : ''}". ` +
+        `Use the file path from Playwright's browser_take_screenshot tool.`
+      );
+    }
+    // Read binary file from the path
+    try {
+      dataToWrite = await fs.readFile(validated.data, true);
       fileSize = dataToWrite.length;
+    } catch {
+      throw new Error(`Cannot read screenshot file: ${validated.data}`);
     }
   } else {
     // Write as-is for text types

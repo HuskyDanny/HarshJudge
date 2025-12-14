@@ -58,7 +58,7 @@ const TOOLS = [
   },
   {
     name: 'recordEvidence',
-    description: 'Record test evidence (screenshot, log, db snapshot)',
+    description: 'Record test evidence (screenshot, log, db snapshot). IMPORTANT: For type="screenshot", data must be an absolute file path to the PNG file (e.g., from Playwright browser_take_screenshot). For other types, data is the text/JSON content.',
     inputSchema: {
       type: 'object' as const,
       properties: {
@@ -70,7 +70,7 @@ const TOOLS = [
           description: 'Type of evidence',
         },
         name: { type: 'string', description: 'Descriptive name for the evidence' },
-        data: { type: 'string', description: 'Evidence data (base64 for binary, JSON/text otherwise)' },
+        data: { type: 'string', description: 'For screenshot: absolute file path to PNG. For other types: text/JSON content.' },
         metadata: { type: 'object', description: 'Optional additional metadata' },
       },
       required: ['runId', 'step', 'type', 'name', 'data'],

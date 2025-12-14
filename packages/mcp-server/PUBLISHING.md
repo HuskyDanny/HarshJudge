@@ -1,10 +1,10 @@
-# Publishing Guide for @anthropic-ai/harshjudge-mcp
+# Publishing Guide for @allenpan/harshjudge-mcp
 
 This document describes how to publish the HarshJudge MCP server to npm and the MCP Registry.
 
 ## Prerequisites
 
-1. **npm access**: You need publish access to the `@anthropic-ai` npm organization
+1. **npm access**: You need publish access to the `@allenpan` npm organization
 2. **mcp-publisher CLI**: Install via Homebrew or download binary
 3. **GitHub authentication**: For MCP Registry publishing
 
@@ -22,7 +22,7 @@ npm pack --dry-run
 
 Expected output:
 ```
-📦 @anthropic-ai/harshjudge-mcp@0.1.0
+📦 @allenpan/harshjudge-mcp@0.1.1
   dist/server.js, dist/index.js, LICENSE, README.md, package.json
 ```
 
@@ -59,7 +59,7 @@ curl -L "https://github.com/modelcontextprotocol/registry/releases/download/v1.0
 mcp-publisher login github
 ```
 
-This opens a browser for OAuth authentication. You must authenticate as a member of the `anthropics` GitHub organization to publish to `io.github.anthropics/*` namespace.
+This opens a browser for OAuth authentication. You must authenticate with GitHub to publish to `io.github.allenpan/*` namespace.
 
 ### Publish to Registry
 
@@ -70,13 +70,13 @@ mcp-publisher publish
 
 Expected output:
 ```
-✓ Successfully published io.github.anthropics/harshjudge@0.1.0
+✓ Successfully published io.github.allenpan/harshjudge@0.1.1
 ```
 
 ### Verify Publication
 
 ```bash
-curl "https://registry.modelcontextprotocol.io/v0/servers?search=io.github.anthropics/harshjudge"
+curl "https://registry.modelcontextprotocol.io/v0/servers?search=io.github.allenpan/harshjudge"
 ```
 
 ## Configuration Files
@@ -85,9 +85,9 @@ curl "https://registry.modelcontextprotocol.io/v0/servers?search=io.github.anthr
 
 ```json
 {
-  "name": "@anthropic-ai/harshjudge-mcp",
-  "version": "0.1.0",
-  "mcpName": "io.github.anthropics/harshjudge",
+  "name": "@allenpan/harshjudge-mcp",
+  "version": "0.1.1",
+  "mcpName": "io.github.allenpan/harshjudge",
   ...
 }
 ```
@@ -99,14 +99,14 @@ The `mcpName` field links the npm package to the MCP Registry entry.
 ```json
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-07-09/server.schema.json",
-  "name": "io.github.anthropics/harshjudge",
+  "name": "io.github.allenpan/harshjudge",
   "description": "AI-native E2E testing orchestration MCP server...",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "packages": [
     {
       "registry_type": "npm",
-      "identifier": "@anthropic-ai/harshjudge-mcp",
-      "version": "0.1.0"
+      "identifier": "@allenpan/harshjudge-mcp",
+      "version": "0.1.1"
     }
   ]
 }
@@ -129,7 +129,7 @@ When releasing a new version:
 - Verify the npm package is published before running `mcp-publisher publish`
 
 ### "Namespace not authorized"
-- Run `mcp-publisher login github` and authenticate with a GitHub account that has access to the `anthropics` organization
+- Run `mcp-publisher login github` and authenticate with your GitHub account (`allenpan`)
 
 ### "Version already exists"
 - Bump the version in both `package.json` and `server.json`
