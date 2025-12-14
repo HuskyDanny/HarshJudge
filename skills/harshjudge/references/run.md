@@ -23,6 +23,8 @@ Use this workflow when user wants to:
 - `mcp__Playwright__browser_console_messages` - Capture console logs
 - `mcp__Playwright__browser_network_requests` - Capture network activity
 
+> **TOKEN OPTIMIZATION**: For `browser_snapshot`, `browser_take_screenshot`, `browser_console_messages`, and `browser_network_requests`, use the [Agent Pattern](agent-pattern.md) to save context tokens.
+
 ## Assets Used
 
 | Asset | Usage |

@@ -23,6 +23,8 @@ AI-native E2E testing with MCP tools and visual evidence capture.
 | Run scenario | [references/run.md](references/run.md) | `startRun`, `recordEvidence`, `completeRun` |
 | Fix failed test | [references/iterate.md](references/iterate.md) | `getStatus`, `saveScenario` |
 | Check status | [references/status.md](references/status.md) | `getStatus` |
+| **Token optimization** | [references/agent-pattern.md](references/agent-pattern.md) | `Task` tool for inspection |
+| Playwright reference | [references/playwright-tools.md](references/playwright-tools.md) | All browser tools |
 
 ## Project Structure
 
@@ -36,6 +38,7 @@ AI-native E2E testing with MCP tools and visual evidence capture.
     scenario.md            # Test steps
     meta.yaml              # Run statistics
     runs/                  # Run history with evidence
+  snapshots/               # Inspection tool outputs (token-saving pattern)
 ```
 
 ## Quick Reference

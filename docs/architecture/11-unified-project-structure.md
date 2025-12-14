@@ -7,7 +7,7 @@ HarshJudge/
 │       ├── ci.yaml                   # Lint, type-check, test
 │       └── release.yaml              # npm publish workflow
 ├── packages/
-│   ├── mcp-server/                   # @harshjudge/mcp-server
+│   ├── mcp-server/                   # @allenpan/harshjudge-mcp (published to npm)
 │   │   ├── src/
 │   │   │   ├── handlers/
 │   │   │   │   ├── initProject.ts
@@ -15,9 +15,14 @@ HarshJudge/
 │   │   │   │   ├── startRun.ts
 │   │   │   │   ├── recordEvidence.ts
 │   │   │   │   ├── completeRun.ts
-│   │   │   │   └── getStatus.ts
+│   │   │   │   ├── getStatus.ts
+│   │   │   │   ├── openDashboard.ts      # Dashboard lifecycle
+│   │   │   │   ├── closeDashboard.ts     # Dashboard lifecycle
+│   │   │   │   └── getDashboardStatus.ts # Dashboard lifecycle
 │   │   │   ├── services/
-│   │   │   │   └── FileSystemService.ts
+│   │   │   │   ├── FileSystemService.ts
+│   │   │   │   ├── dashboard-manager.ts  # Process lifecycle management
+│   │   │   │   └── dashboard-worker.ts   # Forked dashboard process
 │   │   │   ├── utils/
 │   │   │   │   ├── slugify.ts
 │   │   │   │   ├── validation.ts
@@ -28,17 +33,25 @@ HarshJudge/
 │   │   │   ├── handlers/
 │   │   │   └── services/
 │   │   ├── package.json
+│   │   ├── tsup.config.ts            # Bundler config (bundles UX into dist)
 │   │   └── tsconfig.json
-│   ├── ux/                           # @harshjudge/ux
+│   ├── ux/                           # @harshjudge/ux (bundled into mcp-server)
 │   │   ├── src/
 │   │   │   ├── components/
 │   │   │   │   ├── layout/
 │   │   │   │   ├── panels/
+│   │   │   │   │   ├── ScenarioListPanel.tsx
+│   │   │   │   │   ├── RunHistoryPanel.tsx
+│   │   │   │   │   └── RunDetailPanel.tsx
+│   │   │   │   ├── detail/
+│   │   │   │   │   └── EvidencePanel.tsx
 │   │   │   │   ├── viewers/
 │   │   │   │   └── common/
 │   │   │   ├── hooks/
 │   │   │   ├── services/
 │   │   │   ├── lib/
+│   │   │   │   ├── index.ts
+│   │   │   │   └── parseEvidence.ts  # Evidence file type parsing
 │   │   │   ├── styles/
 │   │   │   │   └── globals.css
 │   │   │   ├── App.tsx
@@ -52,7 +65,7 @@ HarshJudge/
 │   │   ├── postcss.config.js
 │   │   ├── package.json
 │   │   └── tsconfig.json
-│   └── shared/                       # @harshjudge/shared
+│   └── shared/                       # @harshjudge/shared (bundled into mcp-server)
 │       ├── src/
 │       │   ├── types/
 │       │   │   ├── config.ts

@@ -1,6 +1,6 @@
 # 5. API Specification (MCP Tools)
 
-HarshJudge uses MCP protocol instead of REST/GraphQL. The MCP server exposes 6 tools.
+HarshJudge uses MCP protocol instead of REST/GraphQL. The MCP server exposes 9 tools.
 
 ## 5.1 MCP Tool Schemas
 
@@ -113,6 +113,50 @@ export const GetStatusParams = z.object({
 export type GetStatusParams = z.infer<typeof GetStatusParams>;
 
 export type GetStatusResult = ProjectStatus | ScenarioDetail;
+
+// ============================================================
+// openDashboard
+// ============================================================
+export const OpenDashboardParams = z.object({
+  port: z.number().int().min(1024).max(65535).optional().default(7002),
+  openBrowser: z.boolean().optional().default(true),
+});
+export type OpenDashboardParams = z.infer<typeof OpenDashboardParams>;
+
+export interface OpenDashboardResult {
+  success: boolean;
+  url: string;
+  port: number;
+  pid: number;
+  message: string;
+}
+
+// ============================================================
+// closeDashboard
+// ============================================================
+export const CloseDashboardParams = z.object({});
+export type CloseDashboardParams = z.infer<typeof CloseDashboardParams>;
+
+export interface CloseDashboardResult {
+  success: boolean;
+  stopped: boolean;
+  message: string;
+}
+
+// ============================================================
+// getDashboardStatus
+// ============================================================
+export const GetDashboardStatusParams = z.object({});
+export type GetDashboardStatusParams = z.infer<typeof GetDashboardStatusParams>;
+
+export interface GetDashboardStatusResult {
+  running: boolean;
+  pid?: number;
+  port?: number;
+  url?: string;
+  startedAt?: string;
+  stale?: boolean;
+}
 ```
 
 ## 5.2 MCP Tool Registration
@@ -205,6 +249,33 @@ export function registerTools(server: Server) {
           properties: {
             scenarioSlug: { type: 'string', description: 'Optional scenario identifier for detailed status' },
           },
+        },
+      },
+      {
+        name: 'openDashboard',
+        description: 'Start the HarshJudge dashboard server',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            port: { type: 'number', description: 'Port to listen on (default: 7002)' },
+            openBrowser: { type: 'boolean', description: 'Open browser automatically (default: true)' },
+          },
+        },
+      },
+      {
+        name: 'closeDashboard',
+        description: 'Stop the running dashboard server',
+        inputSchema: {
+          type: 'object',
+          properties: {},
+        },
+      },
+      {
+        name: 'getDashboardStatus',
+        description: 'Check if the dashboard server is running',
+        inputSchema: {
+          type: 'object',
+          properties: {},
         },
       },
     ],

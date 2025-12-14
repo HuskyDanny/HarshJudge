@@ -1,22 +1,17 @@
 # Epic 4: Installation & Documentation
 
-**Goal:** Create installation flow, CLI commands, and comprehensive documentation for users to get started quickly.
+**Goal:** Create MCP-first installation flow and comprehensive documentation for users to get started quickly with Claude Code.
 
-## Story 4.1: Implement CLI Entry Point
+## Story 4.1: ~~DELETED - CLI Entry Point~~
 
-**As a** developer,
-**I want** a unified CLI for HarshJudge commands,
-**so that** users have a single entry point for all operations.
-
-**Acceptance Criteria:**
-
-1. CLI implemented with commands: `init`, `dashboard`, `status`
-2. `harshjudge init` copies YAML-structured skills (skill.yaml + tasks/ + templates/ + checklists/ + data/) to `.claude/skills/harshjudge/` and initializes project
-3. `harshjudge dashboard` starts the dashboard server
-4. `harshjudge status` prints quick status to terminal
-5. CLI has `--help` for all commands
-6. CLI has `--version` flag
-7. Proper exit codes for success/failure
+> **Status:** REMOVED - CLI functionality superseded by MCP tools.
+>
+> All CLI commands have been replaced by MCP tools:
+> - `init` → `initProject` MCP tool
+> - `dashboard` → `openDashboard` MCP tool
+> - `status` → `getStatus` MCP tool
+>
+> See Story 4.2 for MCP-based installation workflow.
 
 ---
 
@@ -28,12 +23,13 @@
 
 **Acceptance Criteria:**
 
-1. README.md includes quick start guide
-2. Step-by-step installation instructions
-3. Claude Code MCP configuration example
-4. Playwright MCP setup instructions
-5. Troubleshooting section for common issues
-6. Verification steps to confirm working setup
+1. README.md includes quick start guide with MCP-first workflow
+2. Step-by-step installation via npm (`npm install -g @allenpan/harshjudge-mcp`)
+3. Claude Code MCP configuration example (JSON settings for mcpServers)
+4. Playwright MCP setup instructions (required for browser automation)
+5. MCP tools reference table (9 tools: initProject, saveScenario, startRun, recordEvidence, completeRun, getStatus, openDashboard, closeDashboard, getDashboardStatus)
+6. Troubleshooting section for common issues
+7. Verification steps to confirm working setup
 
 ---
 

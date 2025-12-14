@@ -5,63 +5,45 @@ AI-native E2E testing orchestration for Claude Code. HarshJudge uses Claude Code
 ## Quick Start
 
 ```bash
-# 1. Install HarshJudge CLI globally
-npm install -g @harshjudge/cli
+# 1. Install HarshJudge MCP server
+npm install -g @allenpan/harshjudge-mcp
 
-# 2. Initialize in your project
-cd your-project
-harshjudge init
+# 2. Configure Claude Code MCP (see below)
 
-# 3. Configure Claude Code MCP (see below)
-
-# 4. Start the dashboard
-harshjudge dashboard
+# 3. In Claude Code, use the skill to initialize and test
+/harshjudge
 ```
 
 ## Prerequisites
 
 - **Node.js**: 18+ LTS
-- **pnpm**: 8+ (for development)
 - **Claude Code**: Latest version with MCP support
 - **Playwright MCP Server**: For browser automation
 
 ## Installation
 
-### Option 1: npm Install (Recommended)
+### npm Install
 
 ```bash
-npm install -g @harshjudge/cli
+npm install -g @allenpan/harshjudge-mcp
 ```
 
-### Option 2: From Source
+Or use with npx (no install required):
 
 ```bash
-# Clone the repository
-git clone https://github.com/your-org/HarshJudge.git
-cd HarshJudge
-
-# Install dependencies
-pnpm install
-
-# Build all packages
-pnpm build
-
-# Link CLI globally
-cd packages/cli
-npm link
+npx @allenpan/harshjudge-mcp
 ```
 
 ## Claude Code MCP Configuration
 
-Add the following to your `.claude/mcp.json`:
+Add the following to your Claude Code MCP settings:
 
 ```json
 {
   "mcpServers": {
     "harshjudge": {
       "command": "npx",
-      "args": ["@harshjudge/mcp-server"],
-      "env": {}
+      "args": ["@allenpan/harshjudge-mcp"]
     },
     "playwright": {
       "command": "npx",
@@ -71,137 +53,117 @@ Add the following to your `.claude/mcp.json`:
 }
 ```
 
-### MCP Server Configuration Options
+### MCP Tools Available
 
-| Server | Purpose | Required |
-|--------|---------|----------|
-| `harshjudge` | Test orchestration, scenario management, evidence capture | Yes |
-| `playwright` | Browser automation for E2E testing | Yes |
+| Tool | Purpose |
+|------|---------|
+| `initProject` | Initialize HarshJudge in your project |
+| `saveScenario` | Save a test scenario |
+| `startRun` | Start a new test run |
+| `recordEvidence` | Record test evidence (screenshots, logs, etc.) |
+| `completeRun` | Complete a test run with results |
+| `getStatus` | Get project and scenario status |
+| `openDashboard` | Start the dashboard UI server |
+| `closeDashboard` | Stop the dashboard server |
+| `getDashboardStatus` | Check dashboard running status |
 
-## CLI Commands
+## Usage with Claude Code
 
-### `harshjudge init`
+### 1. Initialize Project
 
-Initialize HarshJudge in your project:
+In Claude Code, the `initProject` MCP tool creates the HarshJudge structure:
 
-```bash
-harshjudge init [options]
-
-Options:
-  --name <name>     Project name (default: from package.json)
-  --url <url>       Base URL (default: http://localhost:3000)
-  --skip-skills     Skip copying skills to .claude/skills/
+```
+your-project/
+├── .harshJudge/
+│   ├── config.yaml              # Project configuration
+│   ├── scenarios/               # Test scenarios
+│   └── .dashboard-state.json    # Dashboard process state
+└── ...
 ```
 
-This command:
-1. Copies HarshJudge skills to `.claude/skills/harshjudge/`
-2. Creates `.harshJudge/` directory with configuration
-3. Sets up `.harshJudge/scenarios/` for test scenarios
+### 2. Create Test Scenarios
 
-### `harshjudge dashboard`
+Use the HarshJudge skill in Claude Code:
+- `/harshjudge` - Activates the testing skill
+- Claude will guide you through creating scenarios
 
-Start the HarshJudge dashboard server:
+### 3. Run Tests
 
-```bash
-harshjudge dashboard [options]
+Claude Code with Playwright MCP executes tests and records evidence:
+- Screenshots at each step
+- Console logs
+- Network activity
+- Database snapshots (if configured)
 
-Options:
-  --port <port>     Port number (default: 3000)
-  --no-open         Don't open browser automatically
-```
+### 4. View Results
 
-### `harshjudge status`
-
-Show project status:
-
-```bash
-harshjudge status [options]
-
-Options:
-  --json            Output as JSON
-```
+Use `openDashboard` tool to launch the visual dashboard:
+- 3-column layout: Scenarios | Runs | Evidence
+- Real-time updates
+- Screenshot timeline viewer
 
 ## Project Structure After Init
 
 ```
 your-project/
-├── .claude/
-│   └── skills/
-│       └── harshjudge/          # HarshJudge skills for Claude Code
-│           ├── skill.yaml       # Skill definition
-│           ├── tasks/           # Task definitions
-│           ├── templates/       # Output templates
-│           ├── checklists/      # Quality checklists
-│           └── data/            # Reference data
 ├── .harshJudge/
 │   ├── config.yaml              # Project configuration
 │   ├── scenarios/               # Test scenarios
 │   │   └── login-flow/          # Example scenario
-│   │       ├── scenario.yaml    # Scenario definition
+│   │       ├── scenario.md      # Scenario definition
 │   │       ├── meta.yaml        # Run statistics
 │   │       └── runs/            # Run history with evidence
+│   │           └── run_abc123/
+│   │               ├── result.json
+│   │               └── evidence/
+│   │                   ├── step-1-screenshot.png
+│   │                   └── step-1-screenshot.meta.json
 │   └── .gitignore               # Ignore large evidence files
 └── ...
 ```
 
 ## Verification Steps
 
-After installation, verify your setup:
+After configuration, verify your setup in Claude Code:
 
-1. **Check CLI installation:**
-   ```bash
-   harshjudge --version
-   ```
+1. **Check MCP tools are available:**
+   - HarshJudge tools should appear in Claude Code's tool list
 
-2. **Verify project initialization:**
-   ```bash
-   harshjudge status
-   ```
+2. **Initialize project:**
+   - Ask Claude: "Initialize HarshJudge in this project"
+   - This calls `initProject` and optionally opens the dashboard
 
-3. **Start dashboard:**
-   ```bash
-   harshjudge dashboard
-   ```
-
-4. **Test MCP in Claude Code:**
-   - Open Claude Code in your project
-   - Type `/harshjudge:status` to check skill activation
-   - MCP tools should be available in Claude Code
+3. **Check status:**
+   - Ask Claude: "What's the HarshJudge status?"
+   - This calls `getStatus` to show scenarios and results
 
 ## Troubleshooting
 
 ### Common Issues
 
-#### "harshjudge: command not found"
-```bash
-# Ensure npm global bin is in PATH
-npm config get prefix
-# Add <prefix>/bin to your PATH
-```
-
 #### "MCP server not responding"
-1. Check `.claude/mcp.json` syntax
+1. Check Claude Code MCP settings syntax
 2. Restart Claude Code
-3. Verify `npx @harshjudge/mcp-server` runs manually
-
-#### "Skills not loading"
-1. Verify `.claude/skills/harshjudge/skill.yaml` exists
-2. Check Claude Code skill settings
-3. Run `harshjudge init` again if needed
+3. Verify `npx @allenpan/harshjudge-mcp` runs manually
 
 #### "Dashboard won't start"
 ```bash
 # Check if port is in use
-lsof -i :3000
-# Use different port
-harshjudge dashboard --port 3001
+netstat -ano | grep 7002
+
+# Use different port via MCP tool
+# openDashboard with port: 7003
 ```
+
+#### "Skills not loading"
+1. Verify `.claude/skills/harshjudge/` exists (optional - skills enhance workflow)
+2. Check Claude Code skill settings
+3. Skills can be copied from the `skills/` directory in the HarshJudge repo
 
 ### Getting Help
 
-- Check logs in `.harshJudge/logs/` (if enabled)
-- Run commands with `DEBUG=harshjudge:* harshjudge <command>`
-- File issues at [GitHub Issues](https://github.com/your-org/HarshJudge/issues)
+- File issues at [GitHub Issues](https://github.com/anthropics/harshjudge/issues)
 
 ## Development
 
@@ -210,12 +172,11 @@ harshjudge dashboard --port 3001
 ```
 HarshJudge/
 ├── packages/
-│   ├── cli/           # @harshjudge/cli - Command line interface
-│   ├── mcp-server/    # @harshjudge/mcp-server - MCP server
-│   ├── ux/            # @harshjudge/ux - Dashboard UI
-│   └── shared/        # @harshjudge/shared - Shared types
+│   ├── mcp-server/    # @allenpan/harshjudge-mcp - MCP server (published)
+│   ├── ux/            # Dashboard UI (bundled into mcp-server)
+│   └── shared/        # Shared types (bundled into mcp-server)
 ├── skills/
-│   └── harshjudge/    # Skills source (copied during init)
+│   └── harshjudge/    # Claude Code skills (for reference/copying)
 ├── docs/              # Documentation
 └── examples/          # Example projects
 ```
@@ -234,11 +195,18 @@ HarshJudge/
 ### Building Individual Packages
 
 ```bash
-pnpm --filter @harshjudge/cli build
-pnpm --filter @harshjudge/mcp-server build
+pnpm --filter @allenpan/harshjudge-mcp build
 pnpm --filter @harshjudge/ux build
+pnpm --filter @harshjudge/shared build
+```
+
+### Publishing
+
+```bash
+cd packages/mcp-server
+npm publish
 ```
 
 ## License
 
-Private - All rights reserved.
+MIT License - See [LICENSE](LICENSE) for details.
