@@ -10,9 +10,35 @@ export type EvidenceType =
   | 'custom';
 
 /**
- * Artifacts captured during test execution
+ * Artifacts captured during test execution (v2)
  */
 export interface Evidence {
+  runId: string;
+  stepId: string; // Changed from step: number to stepId: string
+  type: EvidenceType;
+  name: string;
+  filePath: string;
+  capturedAt: string;
+  metadata?: Record<string, unknown>;
+}
+
+/**
+ * Metadata stored alongside evidence files as `.meta.json` (v2)
+ */
+export interface EvidenceMeta {
+  runId: string;
+  stepId: string; // Changed from step: number to stepId: string
+  type: EvidenceType;
+  name: string;
+  capturedAt: string;
+  fileSize: number;
+  metadata?: Record<string, unknown>;
+}
+
+/**
+ * @deprecated Use Evidence instead (stepId: string)
+ */
+export interface EvidenceV1 {
   runId: string;
   step: number;
   type: EvidenceType;
@@ -23,9 +49,9 @@ export interface Evidence {
 }
 
 /**
- * Metadata stored alongside evidence files as `.meta.json`
+ * @deprecated Use EvidenceMeta instead (stepId: string)
  */
-export interface EvidenceMeta {
+export interface EvidenceMetaV1 {
   runId: string;
   step: number;
   type: EvidenceType;

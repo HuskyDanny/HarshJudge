@@ -1,4 +1,4 @@
-import type { ScenarioMeta } from './scenario.js';
+import type { ScenarioStats } from './scenario.js';
 
 /**
  * Summary of a scenario for dashboard display
@@ -6,7 +6,9 @@ import type { ScenarioMeta } from './scenario.js';
 export interface ScenarioSummary {
   slug: string;
   title: string;
+  starred: boolean;
   tags: string[];
+  stepCount: number;
   lastResult: 'pass' | 'fail' | null;
   lastRun: string | null;
   totalRuns: number;
@@ -31,9 +33,10 @@ export interface ProjectStatus {
 export interface RunSummary {
   id: string;
   runNumber: number;
-  status: 'pass' | 'fail';
+  status: 'pass' | 'fail' | 'running';
   duration: number;
-  completedAt: string;
+  startedAt: string;
+  completedAt?: string; // Optional - not present for running status
   errorMessage: string | null;
 }
 
@@ -43,8 +46,10 @@ export interface RunSummary {
 export interface ScenarioDetail {
   slug: string;
   title: string;
+  starred: boolean;
   tags: string[];
+  stepCount: number;
   content: string;
-  meta: ScenarioMeta;
+  meta: ScenarioStats;
   recentRuns: RunSummary[];
 }
