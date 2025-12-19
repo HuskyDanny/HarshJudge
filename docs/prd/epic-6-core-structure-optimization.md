@@ -289,3 +289,32 @@ This epic addresses all these issues through a fundamental restructure that main
 4. **Clarity:** AI agents execute correctly without file-hopping
 
 ---
+
+## Implementation Status
+
+**Epic Status:** ✅ Complete (2025-12-19)
+
+| Story | Status | Notes |
+|-------|--------|-------|
+| 6.1 | ✅ Done | PRD template in initProject |
+| 6.2 | ✅ Done | Granular step schema |
+| 6.3 | ✅ Done | Per-step run structure |
+| 6.4 | ✅ Done | createScenario + toggleStar tools |
+| 6.5 | ⚠️ Partial | Skill files updated, agent pattern documented but not enforced |
+| 6.6 | ✅ Done | Files consolidated, redundant files deleted |
+| 6.7 | ✅ Done | Dashboard adapted with v2 support |
+
+---
+
+## Discovered Requirements (Course Correction 2025-12-19)
+
+The following requirements were discovered during real-world testing:
+
+1. **`'running'` Status** - Dashboard needed to display in-progress runs
+2. **`projectPath` Parameter** - MCP called from different repo needs explicit path
+3. **`startedAt` Field** - In-progress runs need start time, optional completedAt
+4. **v1/v2 Backward Compatibility** - DataService handles both evidence structures
+5. **Evidence Path Parsing** - v2 uses `step-XX/evidence/` not flat structure
+6. **Run Completion Check** - Check status value, not just file existence
+
+---

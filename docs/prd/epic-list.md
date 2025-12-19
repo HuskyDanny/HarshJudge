@@ -12,4 +12,17 @@
 ## Epic 4: Installation & Documentation
 **Goal:** Create MCP-first installation flow and comprehensive documentation. Published as `@allenpan/harshjudge-mcp` on npm.
 
+## Epic 5: Post-POC Improvements *(Superseded)*
+**Goal:** Token optimization and UI enhancements. *(Absorbed into Epic 6)*
+
+## Epic 6: Core Structure Optimization ✅
+**Goal:** Restructure for granular step-based execution with token optimization. Includes:
+- Project PRD template (6.1)
+- Granular step schema (6.2)
+- Per-step run structure (6.3)
+- createScenario/toggleStar tools (6.4)
+- Step-based agent execution (6.5)
+- Skill file consolidation (6.6)
+- Dashboard v2 adaptation (6.7)
+
 ---
