@@ -1,6 +1,6 @@
 import { type FC } from 'react';
 
-type StatusType = 'pass' | 'fail' | 'never_run';
+export type StatusType = 'pass' | 'fail' | 'running' | 'never_run';
 
 interface StatusBadgeProps {
   /** Status to display */
@@ -13,12 +13,14 @@ interface StatusBadgeProps {
 
 const STATUS_COLORS: Record<StatusType, string> = {
   pass: 'bg-green-500',
+  running: 'bg-yellow-500',
   fail: 'bg-red-500',
   never_run: 'bg-gray-500',
 };
 
 const STATUS_LABELS: Record<StatusType, string> = {
   pass: 'All tests passing',
+  running: 'In progress',
   fail: 'Some tests failing',
   never_run: 'Never run',
 };

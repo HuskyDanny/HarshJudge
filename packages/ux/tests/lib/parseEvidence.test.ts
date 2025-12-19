@@ -16,17 +16,17 @@ describe('parseEvidencePaths', () => {
       expect(result[0]).toEqual({
         number: 1,
         action: 'navigate',
-        path: '/project/evidence/step-01-navigate.png',
+        path: '/api/file?path=%2Fproject%2Fevidence%2Fstep-01-navigate.png',
       });
       expect(result[1]).toEqual({
         number: 2,
         action: 'click',
-        path: '/project/evidence/step-02-click.png',
+        path: '/api/file?path=%2Fproject%2Fevidence%2Fstep-02-click.png',
       });
       expect(result[2]).toEqual({
         number: 3,
         action: 'fill',
-        path: '/project/evidence/step-03-fill.png',
+        path: '/api/file?path=%2Fproject%2Fevidence%2Fstep-03-fill.png',
       });
     });
 

@@ -108,7 +108,7 @@ describe('StepTimeline', () => {
           steps={mockSteps}
           currentIndex={0}
           onStepSelect={vi.fn()}
-          failedStep={2}
+          failedStep="02" // v2: zero-padded string
         />
       );
 
@@ -126,7 +126,7 @@ describe('StepTimeline', () => {
           steps={mockSteps}
           currentIndex={0}
           onStepSelect={vi.fn()}
-          failedStep={2}
+          failedStep="02" // v2: zero-padded string
         />
       );
 

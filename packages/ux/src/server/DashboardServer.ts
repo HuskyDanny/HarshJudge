@@ -6,15 +6,26 @@ import type { AddressInfo } from 'net';
 import yaml from 'js-yaml';
 import type {
   HarshJudgeConfig,
-  ScenarioMeta,
+  ScenarioStats,
   RunResult,
   ScenarioSummary,
   ScenarioDetail,
   RunSummary,
 } from '@harshjudge/shared';
+import { DEFAULT_SCENARIO_STATS } from '@harshjudge/shared';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
+
+/**
+ * Extended ScenarioMeta that may include v2 fields
+ */
+interface ScenarioMetaV2 extends ScenarioStats {
+  starred?: boolean;
+  title?: string;
+  tags?: string[];
+  steps?: Array<{ id: string; title: string; file: string }>;
+}
 
 /**
  * Project summary for API response
@@ -440,18 +451,23 @@ export class DashboardServer {
         this.readScenarioMeta(scenarioPath),
       ]);
 
-      if (!scenarioContent) {
+      // v2 structure: meta.yaml has title, scenario.md is optional
+      // v1 structure: scenario.md is required
+      if (!meta && !scenarioContent) {
         return null;
       }
 
       const recentRuns = await this.getRecentRuns(scenarioPath, 10);
+      const metaData = meta || this.defaultMeta();
 
       return {
         slug,
-        title: scenarioContent.title,
-        tags: scenarioContent.tags,
-        content: scenarioContent.content,
-        meta: meta || this.defaultMeta(),
+        title: meta?.title || scenarioContent?.title || slug,
+        starred: meta?.starred ?? false,
+        tags: meta?.tags || scenarioContent?.tags || [],
+        stepCount: meta?.steps?.length ?? 0,
+        content: scenarioContent?.content || '',
+        meta: metaData,
         recentRuns,
       };
     } catch {
@@ -525,11 +541,11 @@ export class DashboardServer {
     }
   }
 
-  private async readScenarioMeta(scenarioPath: string): Promise<ScenarioMeta | null> {
+  private async readScenarioMeta(scenarioPath: string): Promise<ScenarioMetaV2 | null> {
     try {
       const metaPath = join(scenarioPath, 'meta.yaml');
       const content = await readFile(metaPath, 'utf-8');
-      return yaml.load(content) as ScenarioMeta;
+      return yaml.load(content) as ScenarioMetaV2;
     } catch {
       return null;
     }
@@ -572,7 +588,9 @@ export class DashboardServer {
       this.readScenarioContent(scenarioPath),
     ]);
 
-    if (!scenario) {
+    // v2 structure: meta.yaml has title, scenario.md is optional
+    // v1 structure: scenario.md is required
+    if (!meta && !scenario) {
       return null;
     }
 
@@ -583,8 +601,10 @@ export class DashboardServer {
 
     return {
       slug,
-      title: scenario.title,
-      tags: scenario.tags,
+      title: meta?.title || scenario?.title || slug,
+      starred: meta?.starred ?? false,
+      tags: meta?.tags || scenario?.tags || [],
+      stepCount: meta?.steps?.length ?? 0,
       lastResult: metaData.lastResult,
       lastRun: metaData.lastRun,
       totalRuns: metaData.totalRuns,
@@ -624,22 +644,27 @@ export class DashboardServer {
         const result = await this.readRunResult(runPath);
 
         if (result) {
+          // Support both completed runs (pass/fail) and running runs
+          const status = result.status as 'pass' | 'fail' | 'running';
           runs.push({
             id: result.runId,
             runNumber: runs.length + 1,
-            status: result.status,
-            duration: result.duration,
+            status,
+            duration: result.duration ?? 0,
+            startedAt: result.startedAt,
             completedAt: result.completedAt,
-            errorMessage: result.errorMessage,
+            errorMessage: result.errorMessage ?? null,
           });
         }
       }
 
-      // Sort by completedAt (most recent first) and limit
+      // Sort by startedAt (most recent first), fallback to completedAt, and limit
       return runs
-        .sort((a, b) =>
-          new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime()
-        )
+        .sort((a, b) => {
+          const aTime = new Date(a.startedAt || a.completedAt || 0).getTime();
+          const bTime = new Date(b.startedAt || b.completedAt || 0).getTime();
+          return bTime - aTime;
+        })
         .slice(0, limit);
     } catch {
       return [];
@@ -648,6 +673,31 @@ export class DashboardServer {
 
   private async getEvidencePaths(runPath: string): Promise<string[]> {
     try {
+      const paths: string[] = [];
+
+      // Check for v2 structure (per-step evidence directories)
+      const runEntries = await readdir(runPath, { withFileTypes: true });
+      const stepDirs = runEntries.filter(
+        e => e.isDirectory() && e.name.startsWith('step-')
+      );
+
+      if (stepDirs.length > 0) {
+        // v2 structure: read evidence from each step directory
+        for (const stepDir of stepDirs) {
+          const stepEvidencePath = join(runPath, stepDir.name, 'evidence');
+          if (await this.pathExists(stepEvidencePath)) {
+            const entries = await readdir(stepEvidencePath);
+            for (const entry of entries) {
+              if (!entry.endsWith('.meta.json')) {
+                paths.push(join(stepEvidencePath, entry));
+              }
+            }
+          }
+        }
+        return paths;
+      }
+
+      // v1 structure: flat evidence directory at run root
       const evidencePath = join(runPath, 'evidence');
       const exists = await this.pathExists(evidencePath);
 
@@ -685,14 +735,7 @@ export class DashboardServer {
     return 'never_run';
   }
 
-  private defaultMeta(): ScenarioMeta {
-    return {
-      totalRuns: 0,
-      passCount: 0,
-      failCount: 0,
-      lastRun: null,
-      lastResult: null,
-      avgDuration: 0,
-    };
+  private defaultMeta(): ScenarioStats {
+    return { ...DEFAULT_SCENARIO_STATS };
   }
 }

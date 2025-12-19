@@ -3,7 +3,7 @@ import { join } from 'path';
 import yaml from 'js-yaml';
 import type {
   HarshJudgeConfig,
-  ScenarioMeta,
+  ScenarioStats,
   RunResult,
   ScenarioSummary,
   ScenarioDetail,
@@ -114,7 +114,7 @@ export class DataService {
 
       const [scenarioContent, meta] = await Promise.all([
         this.readScenarioContent(scenarioPath),
-        this.readScenarioMeta(scenarioPath),
+        this.readScenarioStats(scenarioPath),
       ]);
 
       if (!scenarioContent) {
@@ -122,13 +122,16 @@ export class DataService {
       }
 
       const recentRuns = await this.getRecentRuns(scenarioPath, 10);
+      const metaData = meta || this.defaultMeta();
 
       return {
         slug,
         title: scenarioContent.title,
+        starred: false, // v1 DataService doesn't support starring
         tags: scenarioContent.tags,
+        stepCount: 0, // v1 structure doesn't have steps
         content: scenarioContent.content,
-        meta: meta || this.defaultMeta(),
+        meta: metaData,
         recentRuns,
       };
     } catch {
@@ -187,11 +190,11 @@ export class DataService {
     }
   }
 
-  private async readScenarioMeta(scenarioPath: string): Promise<ScenarioMeta | null> {
+  private async readScenarioStats(scenarioPath: string): Promise<ScenarioStats | null> {
     try {
       const metaPath = join(scenarioPath, 'meta.yaml');
       const content = await readFile(metaPath, 'utf-8');
-      return yaml.load(content) as ScenarioMeta;
+      return yaml.load(content) as ScenarioStats;
     } catch {
       return null;
     }
@@ -230,7 +233,7 @@ export class DataService {
     slug: string
   ): Promise<ScenarioSummary | null> {
     const [meta, scenario] = await Promise.all([
-      this.readScenarioMeta(scenarioPath),
+      this.readScenarioStats(scenarioPath),
       this.readScenarioContent(scenarioPath),
     ]);
 
@@ -246,7 +249,9 @@ export class DataService {
     return {
       slug,
       title: scenario.title,
+      starred: false, // v1 DataService doesn't support starring
       tags: scenario.tags,
+      stepCount: 0, // v1 structure doesn't have steps
       lastResult: metaData.lastResult,
       lastRun: metaData.lastRun,
       totalRuns: metaData.totalRuns,
@@ -286,22 +291,27 @@ export class DataService {
         const result = await this.readRunResult(runPath);
 
         if (result) {
+          // Support both completed runs (pass/fail) and running runs
+          const status = result.status as 'pass' | 'fail' | 'running';
           runs.push({
             id: result.runId,
             runNumber: runs.length + 1,
-            status: result.status,
-            duration: result.duration,
+            status,
+            duration: result.duration ?? 0,
+            startedAt: result.startedAt,
             completedAt: result.completedAt,
-            errorMessage: result.errorMessage,
+            errorMessage: result.errorMessage ?? null,
           });
         }
       }
 
-      // Sort by completedAt (most recent first) and limit
+      // Sort by startedAt (most recent first), fallback to completedAt, and limit
       return runs
-        .sort((a, b) =>
-          new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime()
-        )
+        .sort((a, b) => {
+          const aTime = new Date(a.startedAt || a.completedAt || 0).getTime();
+          const bTime = new Date(b.startedAt || b.completedAt || 0).getTime();
+          return bTime - aTime;
+        })
         .slice(0, limit);
     } catch {
       return [];
@@ -347,7 +357,7 @@ export class DataService {
     return 'never_run';
   }
 
-  private defaultMeta(): ScenarioMeta {
+  private defaultMeta(): ScenarioStats {
     return {
       totalRuns: 0,
       passCount: 0,

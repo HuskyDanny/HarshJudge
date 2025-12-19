@@ -30,7 +30,7 @@ const mockFailedRunDetail: RunDetail = {
     status: 'fail',
     duration: 3000,
     completedAt: '2025-01-15T11:00:00Z',
-    failedStep: 2,
+    failedStep: '02', // v2: zero-padded string
     errorMessage: 'Element not found: #submit-button',
   },
   evidencePaths: [

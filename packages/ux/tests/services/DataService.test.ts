@@ -199,7 +199,7 @@ describe('DataService', () => {
       expect(result).toBeNull();
     });
 
-    it('returns run detail with evidence paths', async () => {
+    it('returns run detail with evidence paths (v1 flat structure)', async () => {
       mockStat.mockResolvedValue({ isDirectory: () => true });
 
       mockReadFile.mockImplementation(async (path: string) => {
@@ -216,7 +216,16 @@ describe('DataService', () => {
         throw new Error('ENOENT');
       });
 
-      mockReaddir.mockImplementation(async () => {
+      // First call with withFileTypes: run dir (no step-* dirs = v1)
+      // Second call without withFileTypes: evidence dir
+      let readdirCallCount = 0;
+      mockReaddir.mockImplementation(async (_path: string, options?: { withFileTypes?: boolean }) => {
+        readdirCallCount++;
+        if (options?.withFileTypes) {
+          // First call: check for step-* directories (none = v1 structure)
+          return [];
+        }
+        // Second call: list evidence files
         return ['step-01-screenshot.png', 'step-01-screenshot.meta.json', 'step-02-screenshot.png'];
       });
 
@@ -230,10 +239,56 @@ describe('DataService', () => {
       expect(result!.evidencePaths).toHaveLength(2);
     });
 
+    it('returns run detail with evidence paths (v2 per-step structure)', async () => {
+      mockStat.mockResolvedValue({ isDirectory: () => true });
+
+      mockReadFile.mockImplementation(async (path: string) => {
+        if (path.includes('result.json')) {
+          return JSON.stringify({
+            runId: 'abc123',
+            status: 'pass',
+            duration: 3000,
+            completedAt: '2025-01-01T10:00:00Z',
+            failedStep: null,
+            errorMessage: null,
+          });
+        }
+        throw new Error('ENOENT');
+      });
+
+      mockReaddir.mockImplementation(async (_path: string, options?: { withFileTypes?: boolean }) => {
+        if (options?.withFileTypes) {
+          // Return step directories with Dirent-like objects
+          return [
+            { name: 'step-01', isDirectory: () => true },
+            { name: 'step-02', isDirectory: () => true },
+            { name: 'result.json', isDirectory: () => false },
+          ];
+        }
+        // Return evidence files for each step directory
+        return ['before.png', 'after.png'];
+      });
+
+      const service = new DataService('.');
+      const result = await service.getRunDetail('./.harshJudge', 'login', 'abc123');
+
+      expect(result).not.toBeNull();
+      expect(result!.runId).toBe('abc123');
+      // 2 steps * 2 files each = 4 evidence files
+      expect(result!.evidencePaths).toHaveLength(4);
+    });
+
     it('handles missing result.json gracefully', async () => {
       mockStat.mockResolvedValue({ isDirectory: () => true });
       mockReadFile.mockRejectedValue(new Error('ENOENT'));
-      mockReaddir.mockResolvedValue(['step-01.png']);
+
+      mockReaddir.mockImplementation(async (_path: string, options?: { withFileTypes?: boolean }) => {
+        if (options?.withFileTypes) {
+          // No step-* dirs = v1 structure
+          return [];
+        }
+        return ['step-01.png'];
+      });
 
       const service = new DataService('.');
       const result = await service.getRunDetail('./.harshJudge', 'login', 'abc123');

@@ -61,8 +61,20 @@ function toApiUrl(filePath: string): string {
 }
 
 /**
+ * Extract step number from v2 path structure
+ * v2 paths look like: .../runs/{runId}/step-{nn}/evidence/{name}.png
+ */
+function extractStepFromPath(filePath: string): number {
+  const stepDirMatch = filePath.match(/[/\\]step-(\d+)[/\\]/i);
+  if (stepDirMatch && stepDirMatch[1]) {
+    return parseInt(stepDirMatch[1], 10);
+  }
+  return 0;
+}
+
+/**
  * Parse evidence file paths to extract step information
- * Evidence files follow the pattern: step-{number}-{action}.{ext}
+ * Supports both v1 (step-{number}-{action}.{ext}) and v2 (step-{nn}/evidence/{name}.{ext})
  *
  * @param paths - Array of evidence file paths
  * @returns Sorted array of parsed steps
@@ -73,17 +85,31 @@ export function parseEvidencePaths(paths: string[]): ParsedStep[] {
     .map((filePath) => {
       // Extract filename from path (works with both / and \ separators)
       const filename = filePath.split(/[/\\]/).pop() || '';
-      const match = filename.match(/^step-(\d+)-(.+)\.(png|jpg|jpeg)$/i);
 
-      if (!match || !match[1] || !match[2]) {
-        return { number: 0, action: 'unknown', path: toApiUrl(filePath) };
+      // Try v1 pattern first: step-{number}-{action}.{ext}
+      const v1Match = filename.match(/^step-(\d+)-(.+)\.(png|jpg|jpeg)$/i);
+      if (v1Match && v1Match[1] && v1Match[2]) {
+        return {
+          number: parseInt(v1Match[1], 10),
+          action: v1Match[2],
+          path: toApiUrl(filePath),
+        };
       }
 
-      return {
-        number: parseInt(match[1], 10),
-        action: match[2],
-        path: toApiUrl(filePath),
-      };
+      // Try v2 pattern: extract step number from directory path
+      const stepNumber = extractStepFromPath(filePath);
+      if (stepNumber > 0) {
+        // Use filename without extension as action name
+        const nameMatch = filename.match(/^(.+)\.(png|jpg|jpeg)$/i);
+        const action = nameMatch?.[1] || 'screenshot';
+        return {
+          number: stepNumber,
+          action,
+          path: toApiUrl(filePath),
+        };
+      }
+
+      return { number: 0, action: 'unknown', path: toApiUrl(filePath) };
     })
     .filter((step) => step.number > 0)
     .sort((a, b) => a.number - b.number);
@@ -119,7 +145,7 @@ function getEvidenceType(extension: string, filename: string): EvidenceType {
 }
 
 /**
- * Parse a single evidence file path
+ * Parse a single evidence file path (supports v1 and v2 structures)
  */
 function parseEvidenceFile(filePath: string): ParsedEvidence | null {
   // Skip metadata files
@@ -130,23 +156,38 @@ function parseEvidenceFile(filePath: string): ParsedEvidence | null {
   // Extract filename from path (works with both / and \ separators)
   const filename = filePath.split(/[/\\]/).pop() || '';
 
-  // Match pattern: step-{number}-{name}.{ext}
-  const match = filename.match(/^step-(\d+)-(.+)\.(\w+)$/i);
-
-  if (!match || !match[1] || !match[2] || !match[3]) {
-    return null;
+  // Try v1 pattern: step-{number}-{name}.{ext}
+  const v1Match = filename.match(/^step-(\d+)-(.+)\.(\w+)$/i);
+  if (v1Match && v1Match[1] && v1Match[2] && v1Match[3]) {
+    const extension = v1Match[3];
+    const type = getEvidenceType(extension, v1Match[2]);
+    return {
+      number: parseInt(v1Match[1], 10),
+      name: v1Match[2],
+      path: toApiUrl(filePath),
+      type,
+      extension,
+    };
   }
 
-  const extension = match[3];
-  const type = getEvidenceType(extension, match[2]);
+  // Try v2 pattern: extract step number from directory path
+  const stepNumber = extractStepFromPath(filePath);
+  if (stepNumber > 0) {
+    const extMatch = filename.match(/^(.+)\.(\w+)$/i);
+    if (extMatch && extMatch[1] && extMatch[2]) {
+      const extension = extMatch[2];
+      const type = getEvidenceType(extension, extMatch[1]);
+      return {
+        number: stepNumber,
+        name: extMatch[1],
+        path: toApiUrl(filePath),
+        type,
+        extension,
+      };
+    }
+  }
 
-  return {
-    number: parseInt(match[1], 10),
-    name: match[2],
-    path: toApiUrl(filePath),
-    type,
-    extension,
-  };
+  return null;
 }
 
 /**

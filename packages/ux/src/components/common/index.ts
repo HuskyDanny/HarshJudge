@@ -6,6 +6,7 @@ export {
   EyeIcon,
 } from './EmptyState';
 
-export { StatusBadge } from './StatusBadge';
+export { StatusBadge, type StatusType } from './StatusBadge';
+export { StarButton } from './StarButton';
 export { TagChip } from './TagChip';
 export { MarkdownContent } from './MarkdownContent';

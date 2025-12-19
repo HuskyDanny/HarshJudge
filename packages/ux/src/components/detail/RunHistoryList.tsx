@@ -52,7 +52,7 @@ export const RunHistoryList: FC<RunHistoryListProps> = ({
                 Run #{run.runNumber}
               </span>
               <span className="text-xs text-gray-500">
-                {formatRelativeTime(run.completedAt)}
+                {formatRelativeTime(run.completedAt || run.startedAt)}
               </span>
             </div>
           </div>

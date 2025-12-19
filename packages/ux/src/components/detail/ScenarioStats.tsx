@@ -1,10 +1,10 @@
 import { type FC } from 'react';
-import { type ScenarioMeta } from '@harshjudge/shared';
+import { type ScenarioStats as ScenarioStatsType } from '@harshjudge/shared';
 import { formatDuration } from '@/lib';
 
 interface ScenarioStatsProps {
   /** Scenario metadata containing run statistics */
-  meta: ScenarioMeta;
+  meta: ScenarioStatsType;
 }
 
 interface StatCardProps {

@@ -8,7 +8,9 @@ const mockScenarios: ScenarioSummary[] = [
   {
     slug: 'login-flow',
     title: 'Login Flow',
+    starred: true,
     tags: ['auth', 'critical'],
+    stepCount: 3,
     lastResult: 'pass',
     lastRun: '2025-01-02T10:00:00Z',
     totalRuns: 10,
@@ -17,7 +19,9 @@ const mockScenarios: ScenarioSummary[] = [
   {
     slug: 'checkout-process',
     title: 'Checkout Process',
+    starred: false,
     tags: ['e2e', 'payments', 'cart', 'shipping'],
+    stepCount: 5,
     lastResult: 'fail',
     lastRun: '2025-01-03T15:30:00Z',
     totalRuns: 5,
@@ -26,7 +30,9 @@ const mockScenarios: ScenarioSummary[] = [
   {
     slug: 'user-profile',
     title: 'User Profile',
+    starred: false,
     tags: [],
+    stepCount: 0,
     lastResult: null,
     lastRun: null,
     totalRuns: 0,
@@ -149,12 +155,11 @@ describe('ScenarioListPanel', () => {
       expect(screen.getByText('auth')).toBeInTheDocument();
       expect(screen.getByText('critical')).toBeInTheDocument();
 
-      // Checkout Process - first 3 tags shown
+      // Checkout Process - first 2 tags shown (changed from 3)
       expect(screen.getByText('e2e')).toBeInTheDocument();
       expect(screen.getByText('payments')).toBeInTheDocument();
-      expect(screen.getByText('cart')).toBeInTheDocument();
-      // 4th tag shows as +1 indicator
-      expect(screen.getByText('+1')).toBeInTheDocument();
+      // 3rd and 4th tags show as +2 indicator
+      expect(screen.getByText('+2')).toBeInTheDocument();
     });
 
     it('displays total runs and pass rate', () => {
@@ -172,8 +177,8 @@ describe('ScenarioListPanel', () => {
     });
   });
 
-  describe('Sorting by last run time', () => {
-    it('sorts scenarios by last run (most recent first)', () => {
+  describe('Sorting by starred then last run time', () => {
+    it('sorts scenarios by starred first, then by last run (most recent first)', () => {
       render(
         <ScenarioListPanel
           scenarios={mockScenarios}
@@ -185,9 +190,9 @@ describe('ScenarioListPanel', () => {
       const listItems = screen.getAllByRole('option');
       expect(listItems).toHaveLength(3);
 
-      // Checkout Process (Jan 3) should come first, then Login Flow (Jan 2), then User Profile (never)
-      expect(listItems[0]).toHaveTextContent('Checkout Process');
-      expect(listItems[1]).toHaveTextContent('Login Flow');
+      // Login Flow (starred) should come first, then Checkout Process (Jan 3), then User Profile (never)
+      expect(listItems[0]).toHaveTextContent('Login Flow');
+      expect(listItems[1]).toHaveTextContent('Checkout Process');
       expect(listItems[2]).toHaveTextContent('User Profile');
     });
 

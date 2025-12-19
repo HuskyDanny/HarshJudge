@@ -1,6 +1,7 @@
-import { type FC, useMemo } from 'react';
+import { type FC, useMemo, useState } from 'react';
 import { type ScenarioSummary } from '@harshjudge/shared';
 import { StatusBadge } from '../common/StatusBadge';
+import { StarButton } from '../common/StarButton';
 import { TagChip } from '../common/TagChip';
 import { EmptyState, DocumentIcon } from '../common/EmptyState';
 import { formatRelativeTime } from '@/lib';
@@ -12,6 +13,8 @@ interface ScenarioListPanelProps {
   selectedScenario: string | null;
   /** Callback when a scenario is selected */
   onSelect: (scenarioSlug: string) => void;
+  /** Callback when star is toggled (optional - display-only if not provided) */
+  onToggleStar?: (scenarioSlug: string) => void;
   /** Whether data is loading */
   loading?: boolean;
   /** Error message if any */
@@ -25,18 +28,33 @@ export const ScenarioListPanel: FC<ScenarioListPanelProps> = ({
   scenarios,
   selectedScenario,
   onSelect,
+  onToggleStar,
   loading = false,
   error = null,
 }) => {
-  // Sort by last run time (most recent first), null values last
+  const [showStarredOnly, setShowStarredOnly] = useState(false);
+
+  // Sort by starred (starred first), then by last run time (most recent first)
   const sortedScenarios = useMemo(() => {
-    return [...scenarios].sort((a, b) => {
+    let filtered = scenarios;
+
+    // Filter to starred only if enabled
+    if (showStarredOnly) {
+      filtered = scenarios.filter((s) => s.starred);
+    }
+
+    return [...filtered].sort((a, b) => {
+      // Starred scenarios first
+      if (a.starred && !b.starred) return -1;
+      if (!a.starred && b.starred) return 1;
+
+      // Then by last run time
       if (!a.lastRun && !b.lastRun) return 0;
       if (!a.lastRun) return 1;
       if (!b.lastRun) return -1;
       return new Date(b.lastRun).getTime() - new Date(a.lastRun).getTime();
     });
-  }, [scenarios]);
+  }, [scenarios, showStarredOnly]);
 
   // Loading state
   if (loading) {
@@ -83,13 +101,30 @@ export const ScenarioListPanel: FC<ScenarioListPanelProps> = ({
     );
   }
 
+  // Count starred scenarios
+  const starredCount = scenarios.filter((s) => s.starred).length;
+
   return (
     <div className="flex flex-col h-full">
-      {/* Panel header with count */}
+      {/* Panel header with count and filter toggle */}
       <header className="flex items-center justify-between p-3 border-b border-gray-700">
         <h2 className="text-sm font-medium text-gray-400">
-          Scenarios ({scenarios.length})
+          Scenarios ({showStarredOnly ? sortedScenarios.length : scenarios.length})
         </h2>
+        {starredCount > 0 && (
+          <button
+            onClick={() => setShowStarredOnly(!showStarredOnly)}
+            className={`
+              text-xs px-2 py-1 rounded transition-colors
+              ${showStarredOnly
+                ? 'bg-yellow-500/20 text-yellow-400'
+                : 'text-gray-500 hover:text-gray-400'}
+            `}
+            aria-pressed={showStarredOnly}
+          >
+            ★ {starredCount}
+          </button>
+        )}
       </header>
 
       {/* Scenario list */}
@@ -123,27 +158,44 @@ export const ScenarioListPanel: FC<ScenarioListPanelProps> = ({
               }}
               tabIndex={0}
             >
-              {/* Title and status */}
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-sm font-medium text-gray-200 truncate">
+              {/* Title row with star and status */}
+              <div className="flex items-center gap-2 mb-1">
+                {onToggleStar && (
+                  <StarButton
+                    starred={scenario.starred}
+                    onClick={() => onToggleStar(scenario.slug)}
+                    size="sm"
+                  />
+                )}
+                {!onToggleStar && scenario.starred && (
+                  <span className="text-yellow-400 text-sm" aria-label="Starred">★</span>
+                )}
+                <span className="text-sm font-medium text-gray-200 truncate flex-1">
                   {scenario.title}
                 </span>
                 <StatusBadge status={statusValue} />
               </div>
 
-              {/* Tags */}
-              {scenario.tags.length > 0 && (
-                <div className="flex flex-wrap gap-1 mb-1">
-                  {scenario.tags.slice(0, 3).map((tag) => (
-                    <TagChip key={tag} tag={tag} size="sm" />
-                  ))}
-                  {scenario.tags.length > 3 && (
-                    <span className="text-xs text-gray-500">
-                      +{scenario.tags.length - 3}
-                    </span>
-                  )}
-                </div>
-              )}
+              {/* Tags and step count */}
+              <div className="flex items-center gap-2 mb-1">
+                {scenario.stepCount > 0 && (
+                  <span className="text-xs text-gray-500 bg-gray-800 px-1.5 py-0.5 rounded">
+                    {scenario.stepCount} {scenario.stepCount === 1 ? 'step' : 'steps'}
+                  </span>
+                )}
+                {scenario.tags.length > 0 && (
+                  <div className="flex flex-wrap gap-1">
+                    {scenario.tags.slice(0, 2).map((tag) => (
+                      <TagChip key={tag} tag={tag} size="sm" />
+                    ))}
+                    {scenario.tags.length > 2 && (
+                      <span className="text-xs text-gray-500">
+                        +{scenario.tags.length - 2}
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
 
               {/* Stats row */}
               <div className="flex items-center justify-between text-xs text-gray-500">

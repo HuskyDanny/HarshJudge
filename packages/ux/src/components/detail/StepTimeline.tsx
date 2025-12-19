@@ -9,8 +9,8 @@ interface StepTimelineProps {
   currentIndex: number;
   /** Callback when a step is selected */
   onStepSelect: (index: number) => void;
-  /** Step number that failed (1-based), or null if none */
-  failedStep: number | null;
+  /** Step ID that failed (zero-padded string like "01"), or null if none */
+  failedStep: string | null;
 }
 
 /**
@@ -61,16 +61,20 @@ export const StepTimeline: FC<StepTimelineProps> = ({
       aria-label="Step timeline"
       aria-orientation="horizontal"
     >
-      {steps.map((step, index) => (
-        <StepThumbnail
-          key={`${step.number}-${step.action}`}
-          step={step}
-          isSelected={index === currentIndex}
-          isFailed={step.number === failedStep}
-          onClick={() => onStepSelect(index)}
-          dataIndex={index}
-        />
-      ))}
+      {steps.map((step, index) => {
+        // Convert step number to zero-padded string for comparison with failedStep ID
+        const stepId = String(step.number).padStart(2, '0');
+        return (
+          <StepThumbnail
+            key={`${step.number}-${step.action}`}
+            step={step}
+            isSelected={index === currentIndex}
+            isFailed={stepId === failedStep}
+            onClick={() => onStepSelect(index)}
+            dataIndex={index}
+          />
+        );
+      })}
     </div>
   );
 };
