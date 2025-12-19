@@ -14,20 +14,57 @@ vi.mock('nanoid', () => ({
   nanoid: () => 'test-run-id',
 }));
 
+// V2 meta.yaml format with steps
+const V2_META_YAML = `title: Login Test
+slug: login-test
+starred: false
+tags:
+  - auth
+  - smoke
+estimatedDuration: 60
+steps:
+  - id: '01'
+    title: Navigate to login
+    file: 01-navigate-to-login.md
+  - id: '02'
+    title: Enter credentials
+    file: 02-enter-credentials.md
+  - id: '03'
+    title: Submit form
+    file: 03-submit-form.md
+totalRuns: 0
+passCount: 0
+failCount: 0
+avgDuration: 0
+`;
+
+// Legacy v1 meta.yaml without steps
+const V1_META_YAML = `totalRuns: 5
+passCount: 3
+failCount: 2
+title: Old Format
+slug: login-test
+`;
+
 describe('handleStartRun', () => {
   let fs: FileSystemService;
 
   beforeEach(() => {
     vol.reset();
-    // Create initialized project with a scenario
-    vol.mkdirSync('/project/.harshJudge/scenarios/login-test', { recursive: true });
+    // Create initialized project with a v2 scenario
+    vol.mkdirSync('/project/.harshJudge/scenarios/login-test/steps', { recursive: true });
+    vol.writeFileSync('/project/.harshJudge/scenarios/login-test/meta.yaml', V2_META_YAML);
     vol.writeFileSync(
-      '/project/.harshJudge/scenarios/login-test/scenario.md',
-      '---\nid: login-test\ntitle: Login Test\n---\n# Test'
+      '/project/.harshJudge/scenarios/login-test/steps/01-navigate-to-login.md',
+      '# Step 01: Navigate to login'
     );
     vol.writeFileSync(
-      '/project/.harshJudge/scenarios/login-test/meta.yaml',
-      'totalRuns: 0\npassCount: 0\nfailCount: 0'
+      '/project/.harshJudge/scenarios/login-test/steps/02-enter-credentials.md',
+      '# Step 02: Enter credentials'
+    );
+    vol.writeFileSync(
+      '/project/.harshJudge/scenarios/login-test/steps/03-submit-form.md',
+      '# Step 03: Submit form'
     );
     fs = new FileSystemService('/project');
   });
@@ -103,6 +140,57 @@ describe('handleStartRun', () => {
     });
   });
 
+  describe('step information (v2)', () => {
+    it('returns scenario slug and title', async () => {
+      const result = await handleStartRun({ scenarioSlug: 'login-test' }, fs);
+
+      expect(result.scenarioSlug).toBe('login-test');
+      expect(result.scenarioTitle).toBe('Login Test');
+    });
+
+    it('returns steps array from meta.yaml', async () => {
+      const result = await handleStartRun({ scenarioSlug: 'login-test' }, fs);
+
+      expect(result.steps).toHaveLength(3);
+      expect(result.steps[0]).toEqual({
+        id: '01',
+        title: 'Navigate to login',
+        file: '01-navigate-to-login.md',
+      });
+      expect(result.steps[1]).toEqual({
+        id: '02',
+        title: 'Enter credentials',
+        file: '02-enter-credentials.md',
+      });
+      expect(result.steps[2]).toEqual({
+        id: '03',
+        title: 'Submit form',
+        file: '03-submit-form.md',
+      });
+    });
+
+    it('returns empty steps array for v1 meta.yaml without steps', async () => {
+      // Override with v1 meta.yaml
+      vol.writeFileSync('/project/.harshJudge/scenarios/login-test/meta.yaml', V1_META_YAML);
+
+      const result = await handleStartRun({ scenarioSlug: 'login-test' }, fs);
+
+      expect(result.steps).toEqual([]);
+      expect(result.scenarioTitle).toBe('Old Format');
+    });
+
+    it('includes step info needed for orchestration', async () => {
+      const result = await handleStartRun({ scenarioSlug: 'login-test' }, fs);
+
+      // Verify all fields needed for step orchestration are present
+      for (const step of result.steps) {
+        expect(step.id).toBeDefined();
+        expect(step.title).toBeDefined();
+        expect(step.file).toBeDefined();
+      }
+    });
+  });
+
   describe('error handling', () => {
     it('throws error if project not initialized', async () => {
       vol.reset();
@@ -118,6 +206,15 @@ describe('handleStartRun', () => {
       await expect(
         handleStartRun({ scenarioSlug: 'nonexistent' }, fs)
       ).rejects.toThrow('does not exist');
+    });
+
+    it('throws error if scenario has no meta.yaml', async () => {
+      vol.mkdirSync('/project/.harshJudge/scenarios/no-meta', { recursive: true });
+      // No meta.yaml created
+
+      await expect(
+        handleStartRun({ scenarioSlug: 'no-meta' }, fs)
+      ).rejects.toThrow('no meta.yaml');
     });
 
     it('includes scenario slug in error message when not found', async () => {
@@ -149,8 +246,8 @@ describe('handleStartRun', () => {
         recursive: true,
       });
       vol.writeFileSync(
-        '/project/.harshJudge/scenarios/test-123-scenario/scenario.md',
-        '# Test'
+        '/project/.harshJudge/scenarios/test-123-scenario/meta.yaml',
+        'title: Test 123\nslug: test-123-scenario\n'
       );
 
       const result = await handleStartRun(
@@ -188,6 +285,23 @@ describe('handleStartRun', () => {
       const result = await handleStartRun({ scenarioSlug: 'login-test' }, fs);
 
       expect(result.runNumber).toBe(2); // Only the directory counts
+    });
+
+    it('handles scenario with many steps', async () => {
+      const manyStepsMeta = `title: Big Test
+slug: big-test
+steps:
+${Array.from({ length: 20 }, (_, i) => `  - id: '${String(i + 1).padStart(2, '0')}'
+    title: Step ${i + 1}
+    file: ${String(i + 1).padStart(2, '0')}-step-${i + 1}.md`).join('\n')}
+`;
+      vol.mkdirSync('/project/.harshJudge/scenarios/big-test', { recursive: true });
+      vol.writeFileSync('/project/.harshJudge/scenarios/big-test/meta.yaml', manyStepsMeta);
+
+      const result = await handleStartRun({ scenarioSlug: 'big-test' }, fs);
+
+      expect(result.steps).toHaveLength(20);
+      expect(result.steps[19].id).toBe('20');
     });
   });
 });

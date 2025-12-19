@@ -15,8 +15,8 @@ describe('handleRecordEvidence', () => {
 
   beforeEach(() => {
     vol.reset();
-    // Create initialized project with scenario and active run
-    vol.mkdirSync(`/project/.harshJudge/scenarios/login-test/runs/${runId}/evidence`, {
+    // Create initialized project with scenario and active run (v2: no pre-created evidence dir)
+    vol.mkdirSync(`/project/.harshJudge/scenarios/login-test/runs/${runId}`, {
       recursive: true,
     });
     vol.writeFileSync(
@@ -27,7 +27,7 @@ describe('handleRecordEvidence', () => {
   });
 
   describe('successful evidence recording', () => {
-    it('writes text evidence file', async () => {
+    it('writes text evidence file (v2: per-step directory)', async () => {
       const result = await handleRecordEvidence(
         {
           runId,
@@ -40,14 +40,15 @@ describe('handleRecordEvidence', () => {
       );
 
       expect(result.success).toBe(true);
+      // v2: per-step directory structure: step-01/evidence/app-logs.txt
       expect(
         vol.existsSync(
-          `/project/.harshJudge/scenarios/login-test/runs/${runId}/evidence/step-01-app-logs.txt`
+          `/project/.harshJudge/scenarios/login-test/runs/${runId}/step-01/evidence/app-logs.txt`
         )
       ).toBe(true);
     });
 
-    it('writes screenshot from file path', async () => {
+    it('writes screenshot from file path (v2: per-step directory)', async () => {
       // Create a mock screenshot file
       const screenshotPath = '/tmp/playwright-screenshot.png';
       const screenshotData = 'fake png data';
@@ -66,7 +67,8 @@ describe('handleRecordEvidence', () => {
       );
 
       expect(result.success).toBe(true);
-      const filePath = `/project/.harshJudge/scenarios/login-test/runs/${runId}/evidence/step-02-login-page.png`;
+      // v2: per-step directory structure: step-02/evidence/login-page.png
+      const filePath = `/project/.harshJudge/scenarios/login-test/runs/${runId}/step-02/evidence/login-page.png`;
       expect(vol.existsSync(filePath)).toBe(true);
 
       // Verify content was copied from the file
@@ -89,7 +91,7 @@ describe('handleRecordEvidence', () => {
       ).rejects.toThrow('must be an absolute file path');
     });
 
-    it('writes metadata file', async () => {
+    it('writes metadata file (v2: per-step directory)', async () => {
       await handleRecordEvidence(
         {
           runId,
@@ -102,19 +104,20 @@ describe('handleRecordEvidence', () => {
         fs
       );
 
-      const metaPath = `/project/.harshJudge/scenarios/login-test/runs/${runId}/evidence/step-01-test.meta.json`;
+      // v2: per-step directory structure: step-01/evidence/test.meta.json
+      const metaPath = `/project/.harshJudge/scenarios/login-test/runs/${runId}/step-01/evidence/test.meta.json`;
       expect(vol.existsSync(metaPath)).toBe(true);
 
       const meta = JSON.parse(vol.readFileSync(metaPath, 'utf-8') as string);
       expect(meta.runId).toBe(runId);
-      expect(meta.step).toBe(1);
+      expect(meta.stepId).toBe('01'); // v2: stepId string instead of step number
       expect(meta.type).toBe('console_log');
       expect(meta.name).toBe('test');
       expect(meta.metadata.url).toBe('http://localhost:3000');
       expect(meta.capturedAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
     });
 
-    it('returns correct file paths', async () => {
+    it('returns correct file paths (v2: per-step directory)', async () => {
       const result = await handleRecordEvidence(
         {
           runId,
@@ -126,8 +129,10 @@ describe('handleRecordEvidence', () => {
         fs
       );
 
-      expect(result.filePath).toContain('step-03-page.html');
-      expect(result.metaPath).toContain('step-03-page.meta.json');
+      // v2: path format is step-03/evidence/page.html
+      expect(result.filePath).toContain('step-03/evidence/page.html');
+      expect(result.metaPath).toContain('step-03/evidence/page.meta.json');
+      expect(result.stepPath).toContain('step-03');
     });
 
     it('returns correct file size for text', async () => {
@@ -166,7 +171,7 @@ describe('handleRecordEvidence', () => {
       expect(result.fileSize).toBe(originalData.length);
     });
 
-    it('pads step number correctly', async () => {
+    it('pads step number correctly (v2: per-step directory)', async () => {
       await handleRecordEvidence(
         {
           runId,
@@ -178,9 +183,10 @@ describe('handleRecordEvidence', () => {
         fs
       );
 
+      // v2: per-step directory structure: step-05/evidence/test.txt
       expect(
         vol.existsSync(
-          `/project/.harshJudge/scenarios/login-test/runs/${runId}/evidence/step-05-test.txt`
+          `/project/.harshJudge/scenarios/login-test/runs/${runId}/step-05/evidence/test.txt`
         )
       ).toBe(true);
     });
@@ -274,6 +280,29 @@ describe('handleRecordEvidence', () => {
       ).rejects.toThrow('already completed');
     });
 
+    it('allows evidence recording when result.json has status running', async () => {
+      // Create result.json with status 'running' (as completeStep does)
+      vol.writeFileSync(
+        `/project/.harshJudge/scenarios/login-test/runs/${runId}/result.json`,
+        JSON.stringify({ status: 'running', runId, steps: [] })
+      );
+
+      // Should NOT throw - run is still in progress
+      const result = await handleRecordEvidence(
+        {
+          runId,
+          step: 2,
+          type: 'console_log',
+          name: 'step2-log',
+          data: 'log data for step 2',
+        },
+        fs
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.filePath).toContain('step-02');
+    });
+
     it('throws validation error if runId is missing', async () => {
       await expect(
         handleRecordEvidence(
@@ -320,7 +349,7 @@ describe('handleRecordEvidence', () => {
   });
 
   describe('edge cases', () => {
-    it('handles large step numbers', async () => {
+    it('handles large step numbers (v2: per-step directory)', async () => {
       const result = await handleRecordEvidence(
         {
           runId,
@@ -332,7 +361,8 @@ describe('handleRecordEvidence', () => {
         fs
       );
 
-      expect(result.filePath).toContain('step-99-');
+      // v2: per-step directory structure: step-99/evidence/test.txt
+      expect(result.filePath).toContain('step-99/evidence/test.txt');
     });
 
     it('handles empty metadata', async () => {

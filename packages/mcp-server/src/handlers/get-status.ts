@@ -57,10 +57,20 @@ function getContentWithoutFrontmatter(content: string): string {
 }
 
 /**
+ * Extended ScenarioMeta that may include v2 fields
+ */
+interface ScenarioMetaV2 extends ScenarioMeta {
+  starred?: boolean;
+  title?: string;
+  steps?: Array<{ id: string; title: string; file: string }>;
+}
+
+/**
  * Gets project-level status with all scenarios.
  */
 async function getProjectStatus(
-  fs: FileSystemService
+  fs: FileSystemService,
+  starredOnly: boolean = false
 ): Promise<ProjectStatus> {
   // Read config
   const configPath = `${HARSH_JUDGE_DIR}/${CONFIG_FILE}`;
@@ -78,16 +88,22 @@ async function getProjectStatus(
   for (const slug of scenarioSlugs) {
     const scenarioPath = `${scenariosPath}/${slug}`;
 
-    // Read scenario.md for title and tags
-    const scenarioContent = await fs.readFile(`${scenarioPath}/${SCENARIO_FILE}`);
-    const { title, tags } = parseFrontmatter(scenarioContent);
-
-    // Read meta.yaml for stats
+    // Read meta.yaml for stats (v2 format includes title, starred, steps)
     const metaPath = `${scenarioPath}/${META_FILE}`;
-    let meta: ScenarioMeta;
+    let meta: ScenarioMetaV2;
+    let title = 'Untitled';
+    let tags: string[] = [];
+    let starred = false;
+    let stepCount = 0;
 
     if (await fs.exists(metaPath)) {
-      meta = await fs.readYaml<ScenarioMeta>(metaPath);
+      meta = await fs.readYaml<ScenarioMetaV2>(metaPath);
+      // v2 format: title and starred in meta.yaml
+      if (meta.title) {
+        title = meta.title;
+      }
+      starred = meta.starred ?? false;
+      stepCount = meta.steps?.length ?? 0;
     } else {
       meta = {
         totalRuns: 0,
@@ -97,6 +113,22 @@ async function getProjectStatus(
         lastResult: null,
         avgDuration: 0,
       };
+    }
+
+    // Fallback to scenario.md for title and tags (v1 format)
+    const scenarioFilePath = `${scenarioPath}/${SCENARIO_FILE}`;
+    if (await fs.exists(scenarioFilePath)) {
+      const scenarioContent = await fs.readFile(scenarioFilePath);
+      const parsed = parseFrontmatter(scenarioContent);
+      if (!meta.title) {
+        title = parsed.title;
+      }
+      tags = parsed.tags;
+    }
+
+    // Skip non-starred scenarios if filter is enabled
+    if (starredOnly && !starred) {
+      continue;
     }
 
     // Calculate pass rate
@@ -116,7 +148,9 @@ async function getProjectStatus(
     scenarios.push({
       slug,
       title,
+      starred,
       tags,
+      stepCount,
       lastResult: meta.lastResult,
       lastRun: meta.lastRun,
       totalRuns: meta.totalRuns,
@@ -148,17 +182,23 @@ async function getScenarioDetail(
     throw new Error(`Scenario "${slug}" does not exist.`);
   }
 
-  // Read scenario.md
-  const scenarioContent = await fs.readFile(`${scenarioPath}/${SCENARIO_FILE}`);
-  const { title, tags } = parseFrontmatter(scenarioContent);
-  const content = getContentWithoutFrontmatter(scenarioContent);
-
-  // Read meta.yaml
+  // Read meta.yaml for stats (v2 format includes title, starred, steps)
   const metaPath = `${scenarioPath}/${META_FILE}`;
-  let meta: ScenarioMeta;
+  let meta: ScenarioMetaV2;
+  let title = 'Untitled';
+  let tags: string[] = [];
+  let starred = false;
+  let stepCount = 0;
+  let content = '';
 
   if (await fs.exists(metaPath)) {
-    meta = await fs.readYaml<ScenarioMeta>(metaPath);
+    meta = await fs.readYaml<ScenarioMetaV2>(metaPath);
+    // v2 format: title and starred in meta.yaml
+    if (meta.title) {
+      title = meta.title;
+    }
+    starred = meta.starred ?? false;
+    stepCount = meta.steps?.length ?? 0;
   } else {
     meta = {
       totalRuns: 0,
@@ -168,6 +208,18 @@ async function getScenarioDetail(
       lastResult: null,
       avgDuration: 0,
     };
+  }
+
+  // Fallback to scenario.md for title and tags (v1 format)
+  const scenarioFilePath = `${scenarioPath}/${SCENARIO_FILE}`;
+  if (await fs.exists(scenarioFilePath)) {
+    const scenarioContent = await fs.readFile(scenarioFilePath);
+    const parsed = parseFrontmatter(scenarioContent);
+    if (!meta.title) {
+      title = parsed.title;
+    }
+    tags = parsed.tags;
+    content = getContentWithoutFrontmatter(scenarioContent);
   }
 
   // Get recent runs (last 10)
@@ -222,7 +274,9 @@ async function getScenarioDetail(
   return {
     slug,
     title,
+    starred,
     tags,
+    stepCount,
     content,
     meta,
     recentRuns,
@@ -248,6 +302,6 @@ export async function handleGetStatus(
   if (validated.scenarioSlug) {
     return getScenarioDetail(fs, validated.scenarioSlug);
   } else {
-    return getProjectStatus(fs);
+    return getProjectStatus(fs, validated.starredOnly);
   }
 }

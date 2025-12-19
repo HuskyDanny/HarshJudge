@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { vol } from 'memfs';
-import { FileSystemService } from '../../src/services/file-system-service.js';
+import { FileSystemService, generateStepMarkdown } from '../../src/services/file-system-service.js';
 
 // Mock fs/promises with memfs
 vi.mock('fs/promises', async () => {
@@ -134,5 +134,109 @@ describe('FileSystemService', () => {
       expect(dirs).toContain('dir2');
       expect(dirs).not.toContain('file.txt');
     });
+  });
+
+  // ============================================================
+  // Step File Operations (v2)
+  // ============================================================
+
+  describe('ensureStepsDir()', () => {
+    it('creates steps directory for scenario', async () => {
+      await fs.ensureStepsDir('login-flow');
+      expect(vol.existsSync('/test/.harshJudge/scenarios/login-flow/steps')).toBe(true);
+    });
+  });
+
+  describe('writeStepFile()', () => {
+    it('writes step file with correct path', async () => {
+      const content = '# Step 01: Navigate';
+      const path = await fs.writeStepFile('login-flow', '01', 'navigate', content);
+      expect(path).toBe('.harshJudge/scenarios/login-flow/steps/01-navigate.md');
+      expect(vol.readFileSync('/test/.harshJudge/scenarios/login-flow/steps/01-navigate.md', 'utf-8')).toBe(content);
+    });
+  });
+
+  describe('readStepFile()', () => {
+    it('reads step file content', async () => {
+      vol.mkdirSync('/test/.harshJudge/scenarios/login-flow/steps', { recursive: true });
+      vol.writeFileSync('/test/.harshJudge/scenarios/login-flow/steps/01-navigate.md', '# Step content');
+      const content = await fs.readStepFile('login-flow', '01-navigate.md');
+      expect(content).toBe('# Step content');
+    });
+  });
+
+  describe('listStepFiles()', () => {
+    it('lists step files sorted', async () => {
+      vol.mkdirSync('/test/.harshJudge/scenarios/login-flow/steps', { recursive: true });
+      vol.writeFileSync('/test/.harshJudge/scenarios/login-flow/steps/02-submit.md', '');
+      vol.writeFileSync('/test/.harshJudge/scenarios/login-flow/steps/01-navigate.md', '');
+      vol.writeFileSync('/test/.harshJudge/scenarios/login-flow/steps/10-verify.md', '');
+
+      const files = await fs.listStepFiles('login-flow');
+      expect(files).toEqual(['01-navigate.md', '02-submit.md', '10-verify.md']);
+    });
+
+    it('returns empty array if steps dir does not exist', async () => {
+      const files = await fs.listStepFiles('nonexistent');
+      expect(files).toEqual([]);
+    });
+
+    it('filters out non-step files', async () => {
+      vol.mkdirSync('/test/.harshJudge/scenarios/login-flow/steps', { recursive: true });
+      vol.writeFileSync('/test/.harshJudge/scenarios/login-flow/steps/01-navigate.md', '');
+      vol.writeFileSync('/test/.harshJudge/scenarios/login-flow/steps/readme.md', '');
+      vol.writeFileSync('/test/.harshJudge/scenarios/login-flow/steps/notes.txt', '');
+
+      const files = await fs.listStepFiles('login-flow');
+      expect(files).toEqual(['01-navigate.md']);
+    });
+  });
+
+  describe('getStepsPath()', () => {
+    it('returns correct steps path', () => {
+      const path = fs.getStepsPath('login-flow');
+      expect(path).toBe('.harshJudge/scenarios/login-flow/steps');
+    });
+  });
+});
+
+describe('generateStepMarkdown', () => {
+  it('generates step markdown with all sections', () => {
+    const step = {
+      id: '01',
+      title: 'Navigate to Login Page',
+      description: 'Navigate to the login page and verify it loads.',
+      preconditions: '- Application is running\n- User is logged out',
+      actions: '1. Navigate to /login\n2. Wait for page load',
+      expectedOutcome: '- Login form is visible\n- No errors displayed',
+    };
+
+    const markdown = generateStepMarkdown(step);
+
+    expect(markdown).toContain('# Step 01: Navigate to Login Page');
+    expect(markdown).toContain('## Description');
+    expect(markdown).toContain('Navigate to the login page and verify it loads.');
+    expect(markdown).toContain('## Preconditions');
+    expect(markdown).toContain('- Application is running');
+    expect(markdown).toContain('## Actions');
+    expect(markdown).toContain('1. Navigate to /login');
+    expect(markdown).toContain('**Playwright:**');
+    expect(markdown).toContain('```javascript');
+    expect(markdown).toContain('## Expected Outcome');
+    expect(markdown).toContain('- Login form is visible');
+  });
+
+  it('includes Playwright code placeholder', () => {
+    const step = {
+      id: '02',
+      title: 'Enter Credentials',
+      description: 'Enter user credentials',
+      preconditions: 'Login page is loaded',
+      actions: 'Type username and password',
+      expectedOutcome: 'Fields are filled',
+    };
+
+    const markdown = generateStepMarkdown(step);
+    expect(markdown).toContain('// Add Playwright code here');
   });
 });

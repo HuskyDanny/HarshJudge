@@ -35,6 +35,32 @@ describe('handleInitProject', () => {
       expect(vol.existsSync('/project/.harshJudge/scenarios')).toBe(true);
       expect(vol.existsSync('/project/.harshJudge/config.yaml')).toBe(true);
       expect(vol.existsSync('/project/.harshJudge/.gitignore')).toBe(true);
+      expect(vol.existsSync('/project/.harshJudge/prd.md')).toBe(true);
+    });
+
+    it('creates prd.md file', async () => {
+      const result = await handleInitProject(
+        { projectName: 'Test Project' },
+        fs
+      );
+
+      expect(result.prdPath).toBe('.harshJudge/prd.md');
+      expect(vol.existsSync('/project/.harshJudge/prd.md')).toBe(true);
+    });
+
+    it('prd.md contains required sections', async () => {
+      await handleInitProject({ projectName: 'Test' }, fs);
+      const content = vol.readFileSync(
+        '/project/.harshJudge/prd.md',
+        'utf-8'
+      ) as string;
+
+      expect(content).toContain('## Application Type');
+      expect(content).toContain('## Ports');
+      expect(content).toContain('## Main Scenarios');
+      expect(content).toContain('## Authentication');
+      expect(content).toContain('## Tech Stack');
+      expect(content).toContain('## Notes');
     });
 
     it('returns correct paths', async () => {
@@ -45,6 +71,7 @@ describe('handleInitProject', () => {
 
       expect(result.projectPath).toBe('.harshJudge');
       expect(result.configPath).toBe('.harshJudge/config.yaml');
+      expect(result.prdPath).toBe('.harshJudge/prd.md');
       expect(result.scenariosPath).toBe('.harshJudge/scenarios');
     });
 
@@ -88,8 +115,8 @@ describe('handleInitProject', () => {
       ) as string;
 
       expect(gitignore).toContain('# HarshJudge');
-      expect(gitignore).toContain('scenarios/*/runs/*/evidence/*.png');
-      expect(gitignore).toContain('scenarios/*/runs/*/evidence/*.html');
+      expect(gitignore).toContain('scenarios/*/runs/*/step-*/evidence/*.png');
+      expect(gitignore).toContain('scenarios/*/runs/*/step-*/evidence/*.html');
     });
 
     it('returns dashboardUrl and message', async () => {

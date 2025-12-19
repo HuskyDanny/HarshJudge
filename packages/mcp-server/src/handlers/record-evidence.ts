@@ -7,7 +7,6 @@ import { FileSystemService } from '../services/file-system-service.js';
 const HARSH_JUDGE_DIR = '.harshJudge';
 const SCENARIOS_DIR = 'scenarios';
 const RUNS_DIR = 'runs';
-const EVIDENCE_DIR = 'evidence';
 const RESULT_FILE = 'result.json';
 
 // Map evidence types to file extensions
@@ -66,17 +65,27 @@ async function findRunDirectory(
 }
 
 /**
- * Checks if a run has been completed (has result.json).
+ * Checks if a run has been completed (result.json exists with status !== 'running').
+ * A run is considered completed if it has status 'pass' or 'fail'.
+ * Status 'running' means the run is still in progress and can accept evidence.
  */
 async function isRunCompleted(
   fs: FileSystemService,
   runPath: string
 ): Promise<boolean> {
-  return fs.exists(`${runPath}/${RESULT_FILE}`);
+  const resultPath = `${runPath}/${RESULT_FILE}`;
+  if (!(await fs.exists(resultPath))) {
+    return false;
+  }
+
+  const result = await fs.readJson<{ status: string }>(resultPath);
+  // Only completed if status is 'pass' or 'fail', not 'running'
+  return result.status === 'pass' || result.status === 'fail';
 }
 
 /**
  * Records test evidence (screenshot, log, db snapshot) for a test run.
+ * v2: Evidence is stored in per-step directories: runs/{runId}/step-{stepId}/evidence/
  */
 export async function handleRecordEvidence(
   params: unknown,
@@ -101,13 +110,15 @@ export async function handleRecordEvidence(
     throw new Error(`Run "${validated.runId}" is already completed. Cannot add evidence.`);
   }
 
-  // 5. Prepare file paths
-  const stepPadded = String(validated.step).padStart(2, '0');
+  // 5. Prepare file paths (v2: per-step directory)
+  const stepId = String(validated.step).padStart(2, '0');
   const extension = EVIDENCE_EXTENSIONS[validated.type] || 'bin';
-  const fileName = `step-${stepPadded}-${validated.name}.${extension}`;
-  const metaFileName = `step-${stepPadded}-${validated.name}.meta.json`;
+  const fileName = `${validated.name}.${extension}`;
+  const metaFileName = `${validated.name}.meta.json`;
 
-  const evidencePath = `${runPath}/${EVIDENCE_DIR}`;
+  // v2 path structure: runs/{runId}/step-{stepId}/evidence/
+  const stepPath = `${runPath}/step-${stepId}`;
+  const evidencePath = `${stepPath}/evidence`;
   const filePath = `${evidencePath}/${fileName}`;
   const metaPath = `${evidencePath}/${metaFileName}`;
 
@@ -140,10 +151,10 @@ export async function handleRecordEvidence(
   await fs.ensureDir(evidencePath);
   await fs.writeFile(filePath, dataToWrite);
 
-  // 7. Write metadata
+  // 7. Write metadata (v2: uses stepId instead of step number)
   const metadata = {
     runId: validated.runId,
-    step: validated.step,
+    stepId,
     type: validated.type,
     name: validated.name,
     capturedAt: new Date().toISOString(),
@@ -152,11 +163,12 @@ export async function handleRecordEvidence(
   };
   await fs.writeJson(metaPath, metadata);
 
-  // 8. Return result
+  // 8. Return result (v2: includes stepPath)
   return {
     success: true,
     filePath,
     metaPath,
+    stepPath,
     fileSize,
   };
 }

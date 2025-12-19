@@ -12,10 +12,9 @@ export async function handleGetDashboardStatus(
   params: unknown,
   fs: FileSystemService = new FileSystemService()
 ): Promise<GetDashboardStatusResult> {
-  // Validate params (empty object)
-  GetDashboardStatusParamsSchema.parse(params);
+  const validated = GetDashboardStatusParamsSchema.parse(params);
 
-  const manager = new DashboardManager(fs);
+  const manager = new DashboardManager(fs, validated.projectPath);
   const status = await manager.getStatus();
 
   let message: string;

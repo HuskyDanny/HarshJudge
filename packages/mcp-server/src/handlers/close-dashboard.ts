@@ -12,10 +12,9 @@ export async function handleCloseDashboard(
   params: unknown,
   fs: FileSystemService = new FileSystemService()
 ): Promise<CloseDashboardResult> {
-  // Validate params (empty object)
-  CloseDashboardParamsSchema.parse(params);
+  const validated = CloseDashboardParamsSchema.parse(params);
 
-  const manager = new DashboardManager(fs);
+  const manager = new DashboardManager(fs, validated.projectPath);
 
   // Check current status first
   const status = await manager.getStatus();

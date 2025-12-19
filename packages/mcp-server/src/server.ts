@@ -7,9 +7,12 @@ import {
 } from '@modelcontextprotocol/sdk/types.js';
 
 import { handleInitProject } from './handlers/init-project.js';
+import { handleCreateScenario } from './handlers/create-scenario.js';
+import { handleToggleStar } from './handlers/toggle-star.js';
 import { handleSaveScenario } from './handlers/save-scenario.js';
 import { handleStartRun } from './handlers/start-run.js';
 import { handleRecordEvidence } from './handlers/record-evidence.js';
+import { handleCompleteStep } from './handlers/complete-step.js';
 import { handleCompleteRun } from './handlers/complete-run.js';
 import { handleGetStatus } from './handlers/get-status.js';
 import { handleOpenDashboard } from './handlers/open-dashboard.js';
@@ -31,8 +34,50 @@ const TOOLS = [
     },
   },
   {
+    name: 'createScenario',
+    description: 'Create a test scenario with step files. Replaces saveScenario.',
+    inputSchema: {
+      type: 'object' as const,
+      properties: {
+        slug: { type: 'string', description: 'URL-safe identifier (lowercase, hyphens only)' },
+        title: { type: 'string', description: 'Human-readable title' },
+        steps: {
+          type: 'array',
+          description: 'Array of test steps',
+          items: {
+            type: 'object',
+            properties: {
+              title: { type: 'string', description: 'Step title' },
+              description: { type: 'string', description: 'Step description (optional)' },
+              preconditions: { type: 'string', description: 'Step preconditions (optional)' },
+              actions: { type: 'string', description: 'Actions to perform' },
+              expectedOutcome: { type: 'string', description: 'Expected result' },
+            },
+            required: ['title', 'actions', 'expectedOutcome'],
+          },
+        },
+        tags: { type: 'array', items: { type: 'string' }, description: 'Tags for categorization' },
+        estimatedDuration: { type: 'number', description: 'Expected duration in seconds' },
+        starred: { type: 'boolean', description: 'Mark as starred/favorite' },
+      },
+      required: ['slug', 'title', 'steps'],
+    },
+  },
+  {
+    name: 'toggleStar',
+    description: 'Toggle or set the starred status of a scenario',
+    inputSchema: {
+      type: 'object' as const,
+      properties: {
+        scenarioSlug: { type: 'string', description: 'Scenario identifier' },
+        starred: { type: 'boolean', description: 'Explicit starred value (optional, toggles if omitted)' },
+      },
+      required: ['scenarioSlug'],
+    },
+  },
+  {
     name: 'saveScenario',
-    description: 'Save a test scenario to the filesystem',
+    description: '[DEPRECATED - use createScenario] Save a test scenario (flat markdown)',
     inputSchema: {
       type: 'object' as const,
       properties: {
@@ -77,6 +122,21 @@ const TOOLS = [
     },
   },
   {
+    name: 'completeStep',
+    description: 'Complete a single step in a test run with results. Returns nextStepId for chaining.',
+    inputSchema: {
+      type: 'object' as const,
+      properties: {
+        runId: { type: 'string', description: 'Run identifier' },
+        stepId: { type: 'string', description: 'Step ID (zero-padded, e.g., "01", "02")' },
+        status: { type: 'string', enum: ['pass', 'fail', 'skipped'], description: 'Step result status' },
+        duration: { type: 'number', description: 'Step duration in milliseconds' },
+        error: { type: 'string', description: 'Error message (if failed)' },
+      },
+      required: ['runId', 'stepId', 'status', 'duration'],
+    },
+  },
+  {
     name: 'completeRun',
     description: 'Complete a test run with final results',
     inputSchema: {
@@ -85,8 +145,23 @@ const TOOLS = [
         runId: { type: 'string', description: 'Run identifier' },
         status: { type: 'string', enum: ['pass', 'fail'], description: 'Final status' },
         duration: { type: 'number', description: 'Total duration in milliseconds' },
-        failedStep: { type: 'number', description: 'Step number that failed (if failed)' },
+        failedStep: { type: 'string', description: 'Step ID that failed (if failed, zero-padded)' },
         errorMessage: { type: 'string', description: 'Error description (if failed)' },
+        steps: {
+          type: 'array',
+          description: 'Per-step results (optional)',
+          items: {
+            type: 'object',
+            properties: {
+              id: { type: 'string', description: 'Step ID (zero-padded)' },
+              status: { type: 'string', enum: ['pass', 'fail', 'skipped'] },
+              duration: { type: 'number' },
+              error: { type: 'string' },
+              evidenceFiles: { type: 'array', items: { type: 'string' } },
+            },
+            required: ['id', 'status', 'duration'],
+          },
+        },
       },
       required: ['runId', 'status', 'duration'],
     },
@@ -107,8 +182,9 @@ const TOOLS = [
     inputSchema: {
       type: 'object' as const,
       properties: {
-        port: { type: 'number', description: 'Preferred port (default: 3001, auto-increments if busy)' },
+        port: { type: 'number', description: 'Preferred port (default: 7002, auto-increments if busy)' },
         openBrowser: { type: 'boolean', description: 'Open browser after starting (default: true)' },
+        projectPath: { type: 'string', description: 'Path to the project directory containing .harshJudge folder. Defaults to current working directory.' },
       },
     },
   },
@@ -117,7 +193,9 @@ const TOOLS = [
     description: 'Stop the dashboard server and free up resources',
     inputSchema: {
       type: 'object' as const,
-      properties: {},
+      properties: {
+        projectPath: { type: 'string', description: 'Path to the project directory containing .harshJudge folder. Defaults to current working directory.' },
+      },
     },
   },
   {
@@ -125,7 +203,9 @@ const TOOLS = [
     description: 'Check if the dashboard is running, get URL, port, and PID',
     inputSchema: {
       type: 'object' as const,
-      properties: {},
+      properties: {
+        projectPath: { type: 'string', description: 'Path to the project directory containing .harshJudge folder. Defaults to current working directory.' },
+      },
     },
   },
 ];
@@ -133,9 +213,12 @@ const TOOLS = [
 // Handler map
 const HANDLERS: Record<string, (params: unknown) => Promise<unknown>> = {
   initProject: handleInitProject,
+  createScenario: handleCreateScenario,
+  toggleStar: handleToggleStar,
   saveScenario: handleSaveScenario,
   startRun: handleStartRun,
   recordEvidence: handleRecordEvidence,
+  completeStep: handleCompleteStep,
   completeRun: handleCompleteRun,
   getStatus: handleGetStatus,
   openDashboard: handleOpenDashboard,

@@ -33,7 +33,7 @@ export async function handleOpenDashboard(
   fs: FileSystemService = new FileSystemService()
 ): Promise<OpenDashboardResult> {
   const validated = OpenDashboardParamsSchema.parse(params);
-  const manager = new DashboardManager(fs);
+  const manager = new DashboardManager(fs, validated.projectPath);
 
   // Check current status
   const status = await manager.getStatus();

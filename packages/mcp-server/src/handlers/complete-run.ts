@@ -1,14 +1,15 @@
 import {
   CompleteRunParamsSchema,
   type CompleteRunResult,
-  type ScenarioMeta,
+  type ScenarioStats,
+  type StepResult,
+  DEFAULT_SCENARIO_STATS,
 } from '@harshjudge/shared';
 import { FileSystemService } from '../services/file-system-service.js';
 
 const HARSH_JUDGE_DIR = '.harshJudge';
 const SCENARIOS_DIR = 'scenarios';
 const RUNS_DIR = 'runs';
-const EVIDENCE_DIR = 'evidence';
 const RESULT_FILE = 'result.json';
 const META_FILE = 'meta.yaml';
 
@@ -40,24 +41,55 @@ async function findRunAndScenario(
 }
 
 /**
- * Counts evidence files in a run's evidence directory.
+ * Collects evidence files from per-step directories (v2 structure).
+ * Returns array of step results with their evidence files.
  */
-async function countEvidence(
+async function collectStepEvidence(
   fs: FileSystemService,
   runPath: string
-): Promise<number> {
-  const evidencePath = `${runPath}/${EVIDENCE_DIR}`;
-  if (!(await fs.exists(evidencePath))) {
-    return 0;
+): Promise<{ stepId: string; evidenceFiles: string[] }[]> {
+  const results: { stepId: string; evidenceFiles: string[] }[] = [];
+
+  // List all step directories
+  if (!(await fs.exists(runPath))) {
+    return results;
   }
 
-  // Count non-meta files (actual evidence, not .meta.json files)
-  const files = await fs.listFiles(evidencePath);
-  return files.filter((f) => !f.endsWith('.meta.json')).length;
+  const dirs = await fs.listDirs(runPath);
+  const stepDirs = dirs.filter((d) => /^step-\d{2}$/.test(d)).sort();
+
+  for (const stepDir of stepDirs) {
+    const stepId = stepDir.replace('step-', '');
+    const evidencePath = `${runPath}/${stepDir}/evidence`;
+
+    if (await fs.exists(evidencePath)) {
+      const files = await fs.listFiles(evidencePath);
+      const evidenceFiles = files.filter((f) => !f.endsWith('.meta.json'));
+      results.push({ stepId, evidenceFiles });
+    } else {
+      results.push({ stepId, evidenceFiles: [] });
+    }
+  }
+
+  return results;
 }
 
 /**
- * Completes a test run and updates scenario statistics.
+ * Gets the scenario slug from the run path.
+ */
+function extractScenarioSlug(runPath: string): string {
+  // Path format: .harshJudge/scenarios/{slug}/runs/{runId}
+  const parts = runPath.split('/');
+  const scenariosIdx = parts.indexOf('scenarios');
+  if (scenariosIdx >= 0 && parts.length > scenariosIdx + 1) {
+    return parts[scenariosIdx + 1];
+  }
+  return 'unknown';
+}
+
+/**
+ * Completes a test run and updates scenario statistics (v2).
+ * Supports per-step results and backward compatibility with v1.
  */
 export async function handleCompleteRun(
   params: unknown,
@@ -85,36 +117,55 @@ export async function handleCompleteRun(
     throw new Error(`Run "${validated.runId}" is already completed.`);
   }
 
-  // 5. Count evidence and determine step count
-  const evidenceCount = await countEvidence(fs, runPath);
+  // 5. Build steps array (v2)
+  let steps: StepResult[];
 
-  // 6. Write result.json
+  if (validated.steps && validated.steps.length > 0) {
+    // Use provided steps (v2 format)
+    steps = validated.steps;
+  } else {
+    // Backward compatibility: collect evidence from step directories
+    const stepEvidence = await collectStepEvidence(fs, runPath);
+    steps = stepEvidence.map((se) => ({
+      id: se.stepId,
+      status: (validated.failedStep === se.stepId ? 'fail' : 'pass') as 'pass' | 'fail' | 'skipped',
+      duration: 0, // Unknown for v1 compat
+      error: validated.failedStep === se.stepId ? (validated.errorMessage ?? null) : null,
+      evidenceFiles: se.evidenceFiles,
+    }));
+  }
+
+  // 6. Read startedAt from run.json if it exists
+  let startedAt: string | undefined;
+  const runJsonPath = `${runPath}/run.json`;
+  if (await fs.exists(runJsonPath)) {
+    const runData = await fs.readJson<{ startedAt?: string }>(runJsonPath);
+    startedAt = runData.startedAt;
+  }
+
+  // 7. Write result.json (v2 format)
+  const scenarioSlug = extractScenarioSlug(runPath);
   const result = {
     runId: validated.runId,
+    scenarioSlug,
     status: validated.status,
-    duration: validated.duration,
+    startedAt: startedAt ?? new Date().toISOString(),
     completedAt: new Date().toISOString(),
+    duration: validated.duration,
+    steps,
     failedStep: validated.failedStep ?? null,
     errorMessage: validated.errorMessage ?? null,
-    evidenceCount,
   };
   await fs.writeJson(resultPath, result);
 
-  // 7. Update scenario meta.yaml
+  // 8. Update scenario meta.yaml (stats only)
   const metaPath = `${scenarioPath}/${META_FILE}`;
-  let meta: ScenarioMeta;
+  let meta: ScenarioStats;
 
   if (await fs.exists(metaPath)) {
-    meta = await fs.readYaml<ScenarioMeta>(metaPath);
+    meta = await fs.readYaml<ScenarioStats>(metaPath);
   } else {
-    meta = {
-      totalRuns: 0,
-      passCount: 0,
-      failCount: 0,
-      lastRun: null,
-      lastResult: null,
-      avgDuration: 0,
-    };
+    meta = { ...DEFAULT_SCENARIO_STATS };
   }
 
   // Update statistics
@@ -126,7 +177,7 @@ export async function handleCompleteRun(
   const totalDuration = meta.avgDuration * meta.totalRuns + validated.duration;
   const newAvgDuration = Math.round(totalDuration / newTotalRuns);
 
-  const updatedMeta: ScenarioMeta = {
+  const updatedMeta: ScenarioStats = {
     totalRuns: newTotalRuns,
     passCount: newPassCount,
     failCount: newFailCount,
@@ -137,7 +188,7 @@ export async function handleCompleteRun(
 
   await fs.writeYaml(metaPath, updatedMeta);
 
-  // 8. Return result
+  // 9. Return result
   return {
     success: true,
     resultPath,

@@ -81,7 +81,7 @@ describe('handleCompleteRun', () => {
           runId,
           status: 'fail',
           duration: 1000,
-          failedStep: 3,
+          failedStep: '03', // v2: zero-padded string
           errorMessage: 'Element not found',
         },
         fs
@@ -133,7 +133,7 @@ describe('handleCompleteRun', () => {
           runId,
           status: 'fail',
           duration: 500,
-          failedStep: 2,
+          failedStep: '02', // v2: zero-padded string
           errorMessage: 'Timeout waiting for element',
         },
         fs
@@ -142,22 +142,30 @@ describe('handleCompleteRun', () => {
       const resultPath = `/project/.harshJudge/scenarios/login-test/runs/${runId}/result.json`;
       const resultData = JSON.parse(vol.readFileSync(resultPath, 'utf-8') as string);
 
-      expect(resultData.failedStep).toBe(2);
+      expect(resultData.failedStep).toBe('02'); // v2: string
       expect(resultData.errorMessage).toBe('Timeout waiting for element');
     });
 
-    it('counts evidence files', async () => {
-      // Add some evidence files
+    it('collects step evidence from per-step directories (v2)', async () => {
+      // Add evidence files in v2 per-step structure
+      vol.mkdirSync(
+        `/project/.harshJudge/scenarios/login-test/runs/${runId}/step-01/evidence`,
+        { recursive: true }
+      );
+      vol.mkdirSync(
+        `/project/.harshJudge/scenarios/login-test/runs/${runId}/step-02/evidence`,
+        { recursive: true }
+      );
       vol.writeFileSync(
-        `/project/.harshJudge/scenarios/login-test/runs/${runId}/evidence/step-01-screenshot.png`,
+        `/project/.harshJudge/scenarios/login-test/runs/${runId}/step-01/evidence/screenshot.png`,
         'binary data'
       );
       vol.writeFileSync(
-        `/project/.harshJudge/scenarios/login-test/runs/${runId}/evidence/step-01-screenshot.meta.json`,
+        `/project/.harshJudge/scenarios/login-test/runs/${runId}/step-01/evidence/screenshot.meta.json`,
         '{}'
       );
       vol.writeFileSync(
-        `/project/.harshJudge/scenarios/login-test/runs/${runId}/evidence/step-02-log.txt`,
+        `/project/.harshJudge/scenarios/login-test/runs/${runId}/step-02/evidence/log.txt`,
         'log data'
       );
 
@@ -173,8 +181,12 @@ describe('handleCompleteRun', () => {
       const resultPath = `/project/.harshJudge/scenarios/login-test/runs/${runId}/result.json`;
       const resultData = JSON.parse(vol.readFileSync(resultPath, 'utf-8') as string);
 
-      // Should count 2 evidence files (not meta.json)
-      expect(resultData.evidenceCount).toBe(2);
+      // v2: steps array contains evidence files per step
+      expect(resultData.steps).toHaveLength(2);
+      expect(resultData.steps[0].id).toBe('01');
+      expect(resultData.steps[0].evidenceFiles).toContain('screenshot.png');
+      expect(resultData.steps[1].id).toBe('02');
+      expect(resultData.steps[1].evidenceFiles).toContain('log.txt');
     });
   });
 

@@ -1,6 +1,11 @@
 import { mkdir, writeFile, readFile, access, readdir } from 'fs/promises';
 import { dirname, join } from 'path';
 import yaml from 'js-yaml';
+import type { Step } from '@harshjudge/shared';
+
+const HARSH_JUDGE_DIR = '.harshJudge';
+const SCENARIOS_DIR = 'scenarios';
+const STEPS_DIR = 'steps';
 
 /**
  * Service for filesystem operations.
@@ -113,4 +118,87 @@ export class FileSystemService {
     const entries = await readdir(this.resolve(path), { withFileTypes: true });
     return entries.filter((e) => e.isFile()).map((e) => e.name);
   }
+
+  // ============================================================
+  // Step File Operations (v2)
+  // ============================================================
+
+  /**
+   * Ensures steps directory exists for a scenario.
+   */
+  async ensureStepsDir(scenarioSlug: string): Promise<void> {
+    const stepsPath = `${HARSH_JUDGE_DIR}/${SCENARIOS_DIR}/${scenarioSlug}/${STEPS_DIR}`;
+    await this.ensureDir(stepsPath);
+  }
+
+  /**
+   * Writes a step file to the scenario's steps directory.
+   */
+  async writeStepFile(
+    scenarioSlug: string,
+    stepId: string,
+    stepSlug: string,
+    content: string
+  ): Promise<string> {
+    const filename = `${stepId}-${stepSlug}.md`;
+    const stepPath = `${HARSH_JUDGE_DIR}/${SCENARIOS_DIR}/${scenarioSlug}/${STEPS_DIR}/${filename}`;
+    await this.writeFile(stepPath, content);
+    return stepPath;
+  }
+
+  /**
+   * Reads a step file from the scenario's steps directory.
+   */
+  async readStepFile(scenarioSlug: string, filename: string): Promise<string> {
+    const stepPath = `${HARSH_JUDGE_DIR}/${SCENARIOS_DIR}/${scenarioSlug}/${STEPS_DIR}/${filename}`;
+    return this.readFile(stepPath);
+  }
+
+  /**
+   * Lists step files in a scenario's steps directory.
+   */
+  async listStepFiles(scenarioSlug: string): Promise<string[]> {
+    const stepsPath = `${HARSH_JUDGE_DIR}/${SCENARIOS_DIR}/${scenarioSlug}/${STEPS_DIR}`;
+    if (!(await this.exists(stepsPath))) {
+      return [];
+    }
+    const files = await this.listFiles(stepsPath);
+    return files.filter((f) => /^\d{2}-[\w-]+\.md$/.test(f)).sort();
+  }
+
+  /**
+   * Gets the steps directory path for a scenario.
+   */
+  getStepsPath(scenarioSlug: string): string {
+    return `${HARSH_JUDGE_DIR}/${SCENARIOS_DIR}/${scenarioSlug}/${STEPS_DIR}`;
+  }
+}
+
+// ============================================================
+// Step Markdown Generator
+// ============================================================
+
+/**
+ * Generates markdown content for a step file.
+ */
+export function generateStepMarkdown(step: Step): string {
+  return `# Step ${step.id}: ${step.title}
+
+## Description
+${step.description}
+
+## Preconditions
+${step.preconditions}
+
+## Actions
+${step.actions}
+
+**Playwright:**
+\`\`\`javascript
+// Add Playwright code here
+\`\`\`
+
+## Expected Outcome
+${step.expectedOutcome}
+`;
 }

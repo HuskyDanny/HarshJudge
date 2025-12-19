@@ -13,6 +13,7 @@ const META_FILE = 'meta.yaml';
 /**
  * Finds a unique slug by appending numeric suffix if needed.
  * Returns the unique slug and whether it's a new scenario.
+ * @deprecated Use createScenario instead
  */
 async function findUniqueSlug(
   fs: FileSystemService,
@@ -42,11 +43,17 @@ async function findUniqueSlug(
 /**
  * Saves a test scenario to the filesystem.
  * Creates scenario directory with scenario.md and meta.yaml files.
+ * @deprecated Use createScenario instead. This tool will be removed in a future version.
  */
 export async function handleSaveScenario(
   params: unknown,
   fs: FileSystemService = new FileSystemService()
 ): Promise<SaveScenarioResult> {
+  // Deprecation warning
+  console.error(
+    '[HarshJudge] WARNING: saveScenario is deprecated. Use createScenario instead for proper step structure.'
+  );
+
   // 1. Validate input parameters
   const validated = SaveScenarioParamsSchema.parse(params);
 

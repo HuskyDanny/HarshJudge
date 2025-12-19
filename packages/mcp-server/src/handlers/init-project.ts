@@ -10,13 +10,52 @@ const HARSH_JUDGE_DIR = '.harshJudge';
 const CONFIG_FILE = 'config.yaml';
 const SCENARIOS_DIR = 'scenarios';
 const GITIGNORE_FILE = '.gitignore';
+const PRD_FILE = 'prd.md';
 
 const GITIGNORE_CONTENT = `# HarshJudge
-# Ignore large evidence files in CI
-scenarios/*/runs/*/evidence/*.png
-scenarios/*/runs/*/evidence/*.html
+# Ignore large evidence files in CI (per-step structure)
+scenarios/*/runs/*/step-*/evidence/*.png
+scenarios/*/runs/*/step-*/evidence/*.html
 # Dashboard state (local only)
 .dashboard-state.json
+`;
+
+const PRD_TEMPLATE_CONTENT = `# Project PRD
+
+## Application Type
+<!-- backend | fullstack | frontend | other -->
+{app_type}
+
+## Ports
+| Service | Port |
+|---------|------|
+| Frontend | {frontend_port} |
+| Backend | {backend_port} |
+| Database | {database_port} |
+
+## Main Scenarios
+<!-- High-level list of main testing scenarios -->
+- {scenario_1}
+- {scenario_2}
+- {scenario_3}
+
+## Authentication
+<!-- Auth requirements for testing -->
+- **Login URL:** {login_url}
+- **Test Credentials:**
+  - Username: {test_username}
+  - Password: {test_password}
+
+## Tech Stack
+<!-- Frameworks, libraries, tools -->
+- Frontend: {frontend_stack}
+- Backend: {backend_stack}
+- Testing: {testing_tools}
+
+## Notes
+<!-- Additional context for test scenarios -->
+- {note_1}
+- {note_2}
 `;
 
 /**
@@ -56,7 +95,11 @@ export async function handleInitProject(
   const gitignorePath = `${HARSH_JUDGE_DIR}/${GITIGNORE_FILE}`;
   await fs.writeFile(gitignorePath, GITIGNORE_CONTENT);
 
-  // 6. Spawn dashboard server using DashboardManager
+  // 6. Write prd.md template
+  const prdPath = `${HARSH_JUDGE_DIR}/${PRD_FILE}`;
+  await fs.writeFile(prdPath, PRD_TEMPLATE_CONTENT);
+
+  // 7. Spawn dashboard server using DashboardManager
   let dashboardUrl: string | undefined;
   let message = 'HarshJudge initialized successfully';
 
@@ -72,11 +115,12 @@ export async function handleInitProject(
     message = `HarshJudge initialized successfully. Dashboard could not be started automatically - use openDashboard tool to start it.`;
   }
 
-  // 7. Return success result
+  // 8. Return success result
   return {
     success: true,
     projectPath: HARSH_JUDGE_DIR,
     configPath,
+    prdPath,
     scenariosPath: `${HARSH_JUDGE_DIR}/${SCENARIOS_DIR}`,
     dashboardUrl,
     message,

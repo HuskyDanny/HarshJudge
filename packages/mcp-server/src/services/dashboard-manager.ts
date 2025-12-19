@@ -110,9 +110,9 @@ export class DashboardManager {
   private stateFilePath: string;
   private projectDir: string;
 
-  constructor(fs: FileSystemService = new FileSystemService()) {
+  constructor(fs: FileSystemService = new FileSystemService(), projectPath?: string) {
     this.fs = fs;
-    this.projectDir = process.cwd();
+    this.projectDir = projectPath ? resolve(projectPath) : process.cwd();
     this.stateFilePath = join(this.projectDir, HARSH_JUDGE_DIR, DASHBOARD_STATE_FILE);
   }
 
