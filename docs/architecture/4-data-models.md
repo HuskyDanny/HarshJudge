@@ -26,27 +26,75 @@ export interface HarshJudgeConfig {
 
 ---
 
-## 4.2 Scenario
+## 4.2 ProjectPRD
 
-**Purpose:** Test scenario definition stored as `scenario.md` with YAML frontmatter
+**Purpose:** Project-level context stored in `.harshJudge/prd.md` to avoid duplication across scenarios
 
 **Key Attributes:**
-- `id`: string - Unique identifier (same as slug)
+- `appType`: 'backend' | 'fullstack' | 'frontend' | 'other' - Type of application
+- `ports`: object - Port configuration for services
+- `scenarios`: string[] - High-level list of main scenarios
+- `auth`: object - Authentication requirements for testing
+- `techStack`: string[] - Frameworks, libraries, tools
+
+```typescript
+// packages/shared/src/types/config.ts
+export interface ProjectPRD {
+  appType: 'backend' | 'fullstack' | 'frontend' | 'other';
+  ports: {
+    frontend?: number;
+    backend?: number;
+    database?: number;
+  };
+  scenarios: string[];
+  auth: {
+    required: boolean;
+    loginUrl?: string;
+    testCredentials?: {
+      username: string;
+      password: string;
+    };
+  };
+  techStack: string[];
+}
+```
+
+**Relationships:**
+- One per project
+- Referenced by all scenarios for context
+
+---
+
+## 4.3 Scenario
+
+**Purpose:** Test scenario definition with step references stored in `meta.yaml`
+
+**Key Attributes:**
+- `slug`: string - Unique identifier (URL-safe)
 - `title`: string - Human-readable title
+- `starred`: boolean - Whether scenario is marked as important
 - `tags`: string[] - Categorization tags
 - `estimatedDuration`: number - Expected duration in seconds
-- `content`: string - Markdown content with test steps
+- `steps`: StepReference[] - Ordered list of step references
 
 ```typescript
 // packages/shared/src/types/scenario.ts
-export interface Scenario {
-  id: string;
-  title: string;
-  tags: string[];
-  estimatedDuration: number;
-  content: string;
+export interface StepReference {
+  id: string;           // Zero-padded: "01", "02", etc.
+  title: string;        // Human-readable step title
+  file: string;         // Filename: "01-navigate-to-login.md"
 }
 
+export interface Scenario {
+  slug: string;
+  title: string;
+  starred: boolean;
+  tags: string[];
+  estimatedDuration: number;
+  steps: StepReference[];
+}
+
+// Legacy - kept for backward compatibility reference
 export interface ScenarioFrontmatter {
   id: string;
   title: string;
@@ -57,14 +105,51 @@ export interface ScenarioFrontmatter {
 
 **Relationships:**
 - Belongs to one Project (via directory structure)
+- Has many Steps
 - Has many Runs
 - Has one ScenarioMeta
 
 ---
 
-## 4.3 ScenarioMeta
+## 4.4 Step
 
-**Purpose:** Machine-updated statistics stored in `meta.yaml`
+**Purpose:** Individual test step stored as `{id}-{slug}.md` in `steps/` folder
+
+**Key Attributes:**
+- `id`: string - Zero-padded identifier ("01", "02")
+- `title`: string - Step title
+- `description`: string - What this step does
+- `preconditions`: string - Expected state before step
+- `actions`: string - Actions to perform (Playwright code/instructions)
+- `expectedOutcome`: string - What should happen after step
+
+```typescript
+// packages/shared/src/types/scenario.ts
+export interface Step {
+  id: string;
+  title: string;
+  description: string;
+  preconditions: string;
+  actions: string;
+  expectedOutcome: string;
+}
+
+export interface StepFile {
+  id: string;
+  title: string;
+  content: string;  // Full markdown content
+}
+```
+
+**Relationships:**
+- Belongs to one Scenario
+- Has many Evidence artifacts (per run)
+
+---
+
+## 4.5 ScenarioMeta
+
+**Purpose:** Machine-updated statistics stored in `meta.yaml` (merged with Scenario)
 
 **Key Attributes:**
 - `totalRuns`: number - Count of all runs
@@ -77,6 +162,15 @@ export interface ScenarioFrontmatter {
 ```typescript
 // packages/shared/src/types/scenario.ts
 export interface ScenarioMeta {
+  // Scenario definition
+  slug: string;
+  title: string;
+  starred: boolean;
+  tags: string[];
+  estimatedDuration: number;
+  steps: StepReference[];
+
+  // Statistics (machine-updated)
   totalRuns: number;
   passCount: number;
   failCount: number;
@@ -91,7 +185,7 @@ export interface ScenarioMeta {
 
 ---
 
-## 4.4 Run
+## 4.6 Run
 
 **Purpose:** Single execution of a scenario
 
@@ -115,34 +209,67 @@ export interface Run {
 
 **Relationships:**
 - Belongs to one Scenario
-- Has many Evidence artifacts
+- Has many StepResults
+- Has many Evidence artifacts (organized by step)
 - Has one RunResult (when completed)
 
 ---
 
-## 4.5 RunResult
+## 4.7 StepResult
+
+**Purpose:** Result of a single step execution within a run
+
+**Key Attributes:**
+- `id`: string - Step ID ("01", "02")
+- `status`: 'pass' | 'fail' | 'skipped' - Step outcome
+- `duration`: number - Step duration in ms
+- `error`: string | null - Error message if failed
+- `evidenceFiles`: string[] - Paths to evidence files
+
+```typescript
+// packages/shared/src/types/run.ts
+export interface StepResult {
+  id: string;
+  status: 'pass' | 'fail' | 'skipped';
+  duration: number;
+  error: string | null;
+  evidenceFiles: string[];
+}
+```
+
+**Relationships:**
+- Belongs to one Run
+- Has many Evidence artifacts
+
+---
+
+## 4.8 RunResult
 
 **Purpose:** Final outcome of a run stored in `result.json`
 
 **Key Attributes:**
 - `runId`: string - Reference to parent run
+- `scenarioSlug`: string - Parent scenario
 - `status`: 'pass' | 'fail' - Final status
-- `duration`: number - Total duration in ms
+- `startedAt`: string - ISO timestamp
 - `completedAt`: string - ISO timestamp
-- `failedStep`: number | null - Step number that failed
+- `duration`: number - Total duration in ms
+- `steps`: StepResult[] - Per-step results
+- `failedStep`: string | null - Step ID that failed
 - `errorMessage`: string | null - Error description
 
 ```typescript
 // packages/shared/src/types/run.ts
 export interface RunResult {
   runId: string;
+  scenarioSlug: string;
   status: 'pass' | 'fail';
-  duration: number;
+  startedAt: string;
   completedAt: string;
-  failedStep: number | null;
+  duration: number;
+  steps: StepResult[];
+  failedStep: string | null;
   errorMessage: string | null;
-  stepCount: number;
-  evidenceCount: number;
 }
 ```
 
@@ -151,13 +278,13 @@ export interface RunResult {
 
 ---
 
-## 4.6 Evidence
+## 4.9 Evidence
 
-**Purpose:** Artifacts captured during test execution
+**Purpose:** Artifacts captured during test execution, organized by step
 
 **Key Attributes:**
 - `runId`: string - Parent run ID
-- `step`: number - Step number (1-based)
+- `stepId`: string - Step ID ("01", "02")
 - `type`: EvidenceType - Type of evidence
 - `name`: string - Descriptive name
 - `filePath`: string - Relative path to file
@@ -175,7 +302,7 @@ export type EvidenceType =
 
 export interface Evidence {
   runId: string;
-  step: number;
+  stepId: string;
   type: EvidenceType;
   name: string;
   filePath: string;
@@ -185,7 +312,7 @@ export interface Evidence {
 
 export interface EvidenceMeta {
   runId: string;
-  step: number;
+  stepId: string;
   type: EvidenceType;
   name: string;
   capturedAt: string;
@@ -196,11 +323,12 @@ export interface EvidenceMeta {
 
 **Relationships:**
 - Belongs to one Run
-- Stored as file with accompanying `.meta.json`
+- Belongs to one Step (within the run)
+- Stored in `runs/{runId}/step-{stepId}/evidence/`
 
 ---
 
-## 4.7 ProjectStatus
+## 4.10 ProjectStatus
 
 **Purpose:** Aggregated status for dashboard queries
 
@@ -209,7 +337,9 @@ export interface EvidenceMeta {
 export interface ScenarioSummary {
   slug: string;
   title: string;
+  starred: boolean;
   tags: string[];
+  stepCount: number;
   lastResult: 'pass' | 'fail' | null;
   lastRun: string | null;
   totalRuns: number;
@@ -228,8 +358,9 @@ export interface ProjectStatus {
 export interface ScenarioDetail {
   slug: string;
   title: string;
+  starred: boolean;
   tags: string[];
-  content: string;
+  steps: StepReference[];
   meta: ScenarioMeta;
   recentRuns: RunSummary[];
 }
@@ -240,6 +371,8 @@ export interface RunSummary {
   status: 'pass' | 'fail';
   duration: number;
   completedAt: string;
+  steps: StepResult[];
+  failedStep: string | null;
   errorMessage: string | null;
 }
 ```

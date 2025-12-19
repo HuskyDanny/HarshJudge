@@ -7,20 +7,28 @@ HarshJudge uses **file-system-as-database**. No traditional database is used.
 ```
 .harshJudge/
 ├── config.yaml                           # Project configuration
+├── prd.md                                # Project PRD with context (NEW)
 ├── .gitignore                            # Git ignore patterns
 └── scenarios/
     └── {scenario-slug}/                  # One directory per scenario
-        ├── scenario.md                   # Scenario definition
-        ├── meta.yaml                     # Statistics (machine-updated)
+        ├── meta.yaml                     # Scenario definition + statistics
+        ├── steps/                        # Individual step files (NEW)
+        │   ├── 01-{step-slug}.md
+        │   ├── 02-{step-slug}.md
+        │   └── ...
         └── runs/
             └── {run-id}/                 # One directory per run
-                ├── result.json           # Run outcome
-                ├── skill-state.yaml      # Skill execution state (progress tracking)
-                └── evidence/
-                    ├── step-01-{name}.png
-                    ├── step-01-{name}.meta.json
-                    ├── step-02-{name}.json
-                    └── step-02-{name}.meta.json
+                ├── result.json           # Run outcome with per-step results
+                ├── step-01/              # Per-step evidence directories (NEW)
+                │   └── evidence/
+                │       ├── before.png
+                │       ├── before.meta.json
+                │       ├── after.png
+                │       ├── after.meta.json
+                │       └── console.json
+                ├── step-02/
+                │   └── evidence/
+                └── ...
 ```
 
 ## 8.2 File Schemas
@@ -29,67 +37,77 @@ HarshJudge uses **file-system-as-database**. No traditional database is used.
 ```yaml
 projectName: "My App"
 baseUrl: "http://localhost:3000"
-version: "1.0"
+version: "2.0"
 createdAt: "2025-12-04T10:00:00Z"
 ```
 
-### scenario.md
+### prd.md (NEW)
+Project-level context to avoid duplication across scenarios.
+
 ```markdown
----
-id: login-flow
-title: User Login Flow
-tags: [auth, critical]
-estimatedDuration: 30
----
+# Project PRD
 
-# Overview
-Test the complete user login flow.
+## Application Type
+<!-- backend | fullstack | frontend | other -->
+fullstack
 
-# Prerequisites
-- Test user exists: test@example.com / password123
-- Application running at http://localhost:3000
+## Ports
+| Service | Port |
+|---------|------|
+| Frontend | 3000 |
+| Backend | 8080 |
+| Database | 5432 |
 
-# Steps
+## Main Scenarios
+<!-- High-level list of main testing scenarios -->
+- User authentication (login/logout)
+- Product catalog browsing
+- Shopping cart management
+- Checkout flow
 
-## Step 1: Navigate to Login
-**Action:** Go to the login page
-**Playwright:**
-```javascript
-await page.goto('/login');
-```
-**Verify:** Login form is visible
+## Authentication
+<!-- Auth requirements for testing -->
+- **Login URL:** /login
+- **Test Credentials:**
+  - Username: test@example.com
+  - Password: password123
 
-## Step 2: Enter Credentials
-**Action:** Fill in credentials
-**Playwright:**
-```javascript
-await page.fill('[data-testid="email"]', 'test@example.com');
-await page.fill('[data-testid="password"]', 'password123');
-```
-**Verify:** Fields are populated
+## Tech Stack
+<!-- Frameworks, libraries, tools -->
+- Frontend: React, Vite, TailwindCSS
+- Backend: Node.js, Express, PostgreSQL
+- Testing: Playwright
 
-## Step 3: Submit Form
-**Action:** Click login button
-**Playwright:**
-```javascript
-await page.click('[data-testid="login-button"]');
-await page.waitForURL('/dashboard');
-```
-**Verify:** Redirected to dashboard
-**DB Verification:**
-```sql
-SELECT last_login FROM users WHERE email = 'test@example.com';
--- Should be within last minute
+## Notes
+<!-- Additional context for test scenarios -->
+- Database resets between test runs
+- Use incognito mode for auth tests
 ```
 
-# Expected Final State
-- User is logged in
-- Dashboard page is displayed
-- Session cookie is set
-```
+### meta.yaml (UPDATED)
+Combined scenario definition and statistics.
 
-### meta.yaml
 ```yaml
+# Scenario Definition
+slug: "login-flow"
+title: "User Login Flow"
+starred: false
+tags:
+  - auth
+  - critical
+estimatedDuration: 30
+steps:
+  - id: "01"
+    title: "Navigate to login page"
+    file: "01-navigate-to-login.md"
+  - id: "02"
+    title: "Enter credentials"
+    file: "02-enter-credentials.md"
+  - id: "03"
+    title: "Submit form"
+    file: "03-submit-form.md"
+
+# Statistics (machine-updated)
 totalRuns: 5
 passCount: 4
 failCount: 1
@@ -98,27 +116,84 @@ lastResult: pass
 avgDuration: 3200
 ```
 
-### result.json
+### steps/{id}-{slug}.md (NEW)
+Individual step file with structured content.
+
+```markdown
+# Step 01: Navigate to Login Page
+
+## Description
+Navigate to the application's login page and verify it loads correctly.
+
+## Preconditions
+- Application is running at configured baseUrl
+- User is not logged in (no session cookie)
+
+## Actions
+1. Navigate to /login
+2. Wait for page to fully load
+
+**Playwright:**
+```javascript
+await page.goto('/login');
+await page.waitForLoadState('networkidle');
+```
+
+## Expected Outcome
+- Login form is visible
+- Email and password fields are present
+- Submit button is enabled
+- No error messages displayed
+```
+
+### result.json (UPDATED)
+Run outcome with per-step results.
+
 ```json
 {
   "runId": "abc123xyz",
-  "status": "pass",
-  "duration": 3150,
+  "scenarioSlug": "login-flow",
+  "status": "fail",
+  "startedAt": "2025-12-04T15:29:55Z",
   "completedAt": "2025-12-04T15:30:00Z",
-  "failedStep": null,
-  "errorMessage": null,
-  "stepCount": 3,
-  "evidenceCount": 6
+  "duration": 5000,
+  "steps": [
+    {
+      "id": "01",
+      "status": "pass",
+      "duration": 1500,
+      "error": null,
+      "evidenceFiles": ["before.png", "after.png"]
+    },
+    {
+      "id": "02",
+      "status": "pass",
+      "duration": 2000,
+      "error": null,
+      "evidenceFiles": ["before.png", "after.png", "console.json"]
+    },
+    {
+      "id": "03",
+      "status": "fail",
+      "duration": 1500,
+      "error": "Element not found: Submit button",
+      "evidenceFiles": ["before.png", "error.png", "console.json"]
+    }
+  ],
+  "failedStep": "03",
+  "errorMessage": "Element not found: Submit button"
 }
 ```
 
-### evidence/{step}-{name}.meta.json
+### step-{id}/evidence/{name}.meta.json
+Evidence metadata for a specific step.
+
 ```json
 {
   "runId": "abc123xyz",
-  "step": 1,
+  "stepId": "01",
   "type": "screenshot",
-  "name": "login-page",
+  "name": "before",
   "capturedAt": "2025-12-04T15:29:58Z",
   "fileSize": 45678,
   "metadata": {
@@ -128,33 +203,22 @@ avgDuration: 3200
 }
 ```
 
-### skill-state.yaml
-Tracks skill execution progress for recoverability and monitoring. Created by the run-scenario task.
-```yaml
-# Skill execution state - tracks progress through run-scenario task
-skillVersion: "1.0"
-startedAt: "2025-12-05T10:00:00Z"
-currentPhase: "execute-steps"    # init | execute-steps | db-verify | error | success | completed
-currentStep: 2
-totalSteps: 5
-completedSteps:
-  - step: 1
-    status: pass
-    evidenceCaptured: true
-    timestamp: "2025-12-05T10:00:05Z"
-  - step: 2
-    status: pass
-    evidenceCaptured: true
-    timestamp: "2025-12-05T10:00:12Z"
-checklistStatus:
-  pre-run: completed
-  evidence: in_progress
-lastAction: "Executing Playwright for step 3"
-error: null                      # Populated on failure: {step, message, diagnostics}
-completedAt: null                # Populated on completion
-```
+## 8.3 Evidence Naming Conventions
 
-## 8.3 Indexing Strategy
+Evidence files use consistent naming within each step's evidence directory:
+
+| Name | Type | Description |
+|------|------|-------------|
+| `before.png` | screenshot | State before action |
+| `after.png` | screenshot | State after action |
+| `error.png` | screenshot | State when error occurred |
+| `console.json` | console_log | Browser console messages |
+| `network.json` | network_log | Network requests/responses |
+| `dom.html` | html_snapshot | DOM state |
+| `db-{table}.json` | db_snapshot | Database state |
+| `custom-{name}.json` | custom | Custom evidence |
+
+## 8.4 Indexing Strategy
 
 Since file-system-as-database doesn't support queries, the dashboard uses in-memory indexing:
 
@@ -162,5 +226,47 @@ Since file-system-as-database doesn't support queries, the dashboard uses in-mem
 2. **On Change:** File watcher triggers selective re-read
 3. **Caching:** Recent reads cached with TTL
 4. **Performance:** For 100+ scenarios, < 1s load time (per NFR3)
+
+### Starred Scenarios Index
+
+For efficient starred scenario filtering:
+
+```typescript
+// In-memory index structure
+interface ScenarioIndex {
+  all: Map<string, ScenarioMeta>;
+  starred: Set<string>;  // Set of starred scenario slugs
+  byTag: Map<string, Set<string>>;
+}
+```
+
+## 8.5 Migration from v1 Structure
+
+The new structure (v2) is a **clean break** from v1. No automatic migration is provided.
+
+**v1 Structure (deprecated):**
+```
+.harshJudge/scenarios/{slug}/
+├── scenario.md        # All steps in one file
+├── meta.yaml          # Statistics only
+└── runs/{runId}/
+    └── evidence/      # Flat evidence folder
+```
+
+**v2 Structure (current):**
+```
+.harshJudge/scenarios/{slug}/
+├── meta.yaml          # Definition + statistics
+├── steps/             # Individual step files
+└── runs/{runId}/
+    ├── result.json    # Per-step results
+    └── step-{id}/     # Per-step evidence
+        └── evidence/
+```
+
+To convert v1 projects, users must:
+1. Re-initialize with `initProject`
+2. Recreate scenarios with `createScenario`
+3. Old run history will not be preserved
 
 ---
