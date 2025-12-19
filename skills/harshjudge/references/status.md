@@ -7,16 +7,12 @@ Use this workflow when user wants to:
 - View all test scenarios
 - See run history for a scenario
 - Get summary of test results
+- Filter starred scenarios
 
 ## MCP Tools Used
 
 - `mcp__harshjudge__getStatus`
-
-## Assets Used
-
-| Asset | Usage |
-|-------|-------|
-| `.harshJudge/assets/prd.md` | **Read:** Check Scenario Registry for context |
+- `mcp__harshjudge__toggleStar` (optional: to mark favorites)
 
 ## Prerequisites
 
@@ -28,25 +24,14 @@ Use this workflow when user wants to:
 
 Get status of all scenarios in the project.
 
-#### Step 1: Check prd.md for Context
-
-```
-Read .harshJudge/assets/prd.md
-```
-
-Check the Scenario Registry for:
-- Scenario priorities (P0/P1/P2)
-- Expected scenarios
-- Deprecated scenarios
-
-#### Step 2: Call getStatus (no parameters)
+#### Step 1: Call getStatus (no parameters)
 
 ```json
 // mcp__harshjudge__getStatus
 {}
 ```
 
-#### Step 3: Process Response
+#### Step 2: Process Response
 
 ```json
 {
@@ -61,6 +46,7 @@ Check the Scenario Registry for:
       "slug": "login-flow",
       "title": "User Login Flow",
       "tags": ["auth", "critical"],
+      "starred": true,
       "lastRun": {
         "status": "pass",
         "timestamp": "2024-01-15T12:30:00Z",
@@ -78,9 +64,9 @@ Check the Scenario Registry for:
 }
 ```
 
-#### Step 4: Present Summary
+#### Step 3: Present Summary
 
-Format as readable table, incorporating priority from prd.md:
+Format as readable table:
 
 ```
 HarshJudge Project Status
@@ -91,14 +77,12 @@ Dashboard: http://localhost:3001
 
 Scenarios (2 total):
 
-| Scenario | Priority | Last Run | Status | Pass Rate |
-|----------|----------|----------|--------|-----------|
-| User Login Flow | P0 | 2h ago | Pass | 80% (8/10) |
-| Checkout Process | P1 | Never | N/A | - |
+| Scenario | Starred | Last Run | Status | Pass Rate |
+|----------|---------|----------|--------|-----------|
+| User Login Flow | ⭐ | 2h ago | Pass | 80% (8/10) |
+| Checkout Process |  | Never | N/A | - |
 
 Tags: auth (1), critical (1), cart (1), payment (1)
-
-Note: Check .harshJudge/assets/prd.md for scenario priorities
 ```
 
 ### Option B: Specific Scenario Status
@@ -123,7 +107,12 @@ Get detailed status for a single scenario.
     "slug": "login-flow",
     "title": "User Login Flow",
     "tags": ["auth", "critical"],
-    "content": "# User Login Flow\n\n## Description...",
+    "starred": true,
+    "steps": [
+      { "id": "01", "title": "Navigate to login", "file": "01-navigate-to-login.md" },
+      { "id": "02", "title": "Enter credentials", "file": "02-enter-credentials.md" },
+      { "id": "03", "title": "Submit form", "file": "03-submit-form.md" }
+    ],
     "estimatedDuration": 30,
     "stats": {
       "totalRuns": 10,
@@ -148,11 +137,17 @@ Get detailed status for a single scenario.
 #### Step 3: Present Detailed Status
 
 ```
-Scenario Status: User Login Flow
+Scenario Status: User Login Flow ⭐
 
 Slug: login-flow
 Tags: auth, critical
-Estimated Duration: 30s
+Starred: Yes
+Steps: 3
+
+Step Files:
+  01. Navigate to login (01-navigate-to-login.md)
+  02. Enter credentials (02-enter-credentials.md)
+  03. Submit form (03-submit-form.md)
 
 Statistics:
 - Total Runs: 10
@@ -167,11 +162,43 @@ Recent Runs:
 | run_xyz789 | Fail | 8.5s | 3.5h ago |
 
 Last Failure:
-- Step 3: Element not found
+- Step 03: Expected dashboard but got error page
 - Run: run_xyz789
+- Evidence: .harshJudge/scenarios/login-flow/runs/run_xyz789/step-03/evidence/
 
 View details: http://localhost:3001/scenarios/login-flow
 ```
+
+---
+
+## Toggle Star
+
+Mark a scenario as starred (favorite) for quick filtering:
+
+```json
+// mcp__harshjudge__toggleStar
+{
+  "scenarioSlug": "login-flow"
+}
+// Toggles current state
+
+// Or set explicitly:
+{
+  "scenarioSlug": "login-flow",
+  "starred": true
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "slug": "login-flow",
+  "starred": true
+}
+```
+
+---
 
 ## Error Handling
 
@@ -198,7 +225,7 @@ View details: http://localhost:3001/scenarios/login-flow
 | Pass | All steps completed successfully |
 | Fail | One or more steps failed |
 | N/A | Never run |
-| Running | Currently executing |
+| ⭐ | Starred scenario (favorite) |
 
 ## Post-Status Guidance
 
@@ -208,7 +235,7 @@ Based on status, suggest next actions:
 > "Would you like to run one of these scenarios?"
 
 **If recent failures:**
-> "The login-flow scenario failed recently. Would you like to investigate or re-run it?"
+> "The login-flow scenario failed at step 03. Would you like to investigate or re-run it?"
 > Reference: Use iterate workflow to analyze failures
 
 **If no scenarios:**
@@ -216,6 +243,3 @@ Based on status, suggest next actions:
 
 **If high pass rate:**
 > "Tests are looking healthy! Last run passed 2 hours ago."
-
-**If prd.md shows missing scenarios:**
-> "prd.md lists scenarios that don't exist yet. Would you like to create them?"

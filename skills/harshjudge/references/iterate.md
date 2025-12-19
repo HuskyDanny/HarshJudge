@@ -11,330 +11,326 @@ Use this workflow when:
 ## MCP Tools Used
 
 - `mcp__harshjudge__getStatus` - Review failed run evidence
-- `mcp__harshjudge__saveScenario` - Update scenario definition
-- `mcp__harshjudge__startRun` + `recordEvidence` + `completeRun` - Re-run test
+- `mcp__harshjudge__createScenario` - Update scenario with step files
+- `mcp__harshjudge__startRun` + `completeStep` + `completeRun` - Re-run test
 - Playwright tools for browser automation
-
-## Assets Used & Updated
-
-| Asset | Usage |
-|-------|-------|
-| `.harshJudge/assets/iterations.md` | **Read:** Check known patterns, selector mappings, timing requirements |
-| `.harshJudge/assets/iterations.md` | **Update:** Add new ITR-{NUMBER} record after each iteration |
-| `.harshJudge/assets/prd.md` | **Read:** Check product context if needed |
 
 ## Core Philosophy: Learn from Failures
 
 **Failed runs are valuable data, not waste.** Each failed run provides:
-1. Screenshots showing what actually happened
+1. Screenshots showing what actually happened (in `step-XX/evidence/`)
 2. Logs revealing backend behavior
 3. Evidence of gaps between expectation and reality
 
-**Goal:** Use this evidence to iterate toward a scenario that accurately tests the intended behavior, and **accumulate learnings** in `iterations.md`.
+**Goal:** Use this evidence to iterate toward a scenario that accurately tests the intended behavior, and **accumulate learnings** in `prd.md`.
+
+## Project Structure for Iteration
+
+```
+.harshJudge/
+  prd.md                          # Project knowledge (update with learnings)
+  scenarios/{slug}/
+    meta.yaml                     # Scenario definition + stats
+    steps/                        # Individual step files (edit these)
+      01-navigate-to-login.md
+      02-enter-credentials.md
+      03-submit-form.md
+    runs/{runId}/                 # Run history (review evidence here)
+      result.json                 # Per-step results
+      step-01/evidence/           # Step 01 evidence
+        before.png
+        after.png
+      step-02/evidence/           # Step 02 evidence
+      ...
+```
 
 ## Workflow
 
-### Step 1: Check Existing Knowledge
+### Step 1: Analyze the Failed Run
 
-**Before analyzing the failure, check iterations.md for known patterns:**
+Get detailed status of the scenario:
 
-```
-Read .harshJudge/assets/iterations.md
-```
-
-Check the Quick Reference tables:
-- **Selector Mappings:** Is this element already mapped?
-- **Timing Requirements:** Is this operation known to need waits?
-- **Common Failure Patterns:** Have we seen this failure before?
-
-If the pattern is known, apply the documented solution directly.
-
-### Step 2: Analyze the Failed Run
-
-If not a known pattern, investigate the failure:
-
-```
-mcp__harshjudge__getStatus({ scenarioSlug: "the-scenario" })
+```json
+// mcp__harshjudge__getStatus
+{
+  "scenarioSlug": "login-flow"
+}
 ```
 
 Review the response to identify:
-- **failedStep**: Which step failed?
-- **errorMessage**: What went wrong?
-- **evidencePaths**: What screenshots/logs were captured?
+- **lastRun**: Run ID of the failed run
+- **lastResult**: Which step failed
+- **passRate**: Historical success rate
 
-### Step 3: Review Evidence from Dashboard
+### Step 2: Review Evidence
+
+Navigate to the failed run's evidence directories:
+
+```
+.harshJudge/scenarios/{slug}/runs/{runId}/
+```
+
+**For each step directory:**
+- `step-01/evidence/` - First step evidence
+- `step-02/evidence/` - Second step evidence
+- etc.
+
+**Read result.json for per-step details:**
+```json
+{
+  "status": "fail",
+  "startedAt": "2024-01-15T10:30:00Z",
+  "completedAt": "2024-01-15T10:30:15Z",
+  "duration": 15234,
+  "failedStep": "03",
+  "errorMessage": "Expected dashboard but got error page",
+  "steps": [
+    { "id": "01", "status": "pass", "duration": 3000 },
+    { "id": "02", "status": "pass", "duration": 5000 },
+    { "id": "03", "status": "fail", "duration": 7234, "error": "..." }
+  ]
+}
+```
+
+### Step 3: Review the Dashboard
 
 Open the dashboard and navigate to the failed run:
 
 ```
-http://localhost:3001 -> Project -> Scenario -> Failed Run
+http://localhost:3001 -> Scenario -> Failed Run
 ```
 
 **Examine critically:**
 
 | Evidence Type | What to Look For |
 |--------------|------------------|
-| **Screenshots** | Does the UI match scenario expectations? Are selectors correct? |
-| **Logs** | What did the backend actually do? Are API calls correct? |
-| **DB Verification** | Is data in expected state? |
-| **Error Messages** | Actual error vs expected behavior |
+| **Before screenshots** | Was the page in expected state before action? |
+| **After screenshots** | What actually happened after action? |
+| **Console logs** | Any JavaScript errors? |
+| **Network logs** | Did API calls succeed/fail? |
 
 ### Step 4: Classify the Failure
 
 Determine the failure type to choose the correct action:
 
-| Failure Type | Description | Action | Update to iterations.md |
-|-------------|-------------|--------|-------------------------|
-| **Selector Broken** | UI changed, selectors outdated | Update step selectors | Add to Selector Mappings |
-| **Timing Issue** | Action too fast, element not ready | Add wait conditions | Add to Timing Requirements |
-| **Scenario Mismatch** | Scenario describes wrong flow | Update scenario | Add to Failure Patterns |
-| **App Bug** | Application has actual bug | Mark as known-fail, report bug | Document as App Bug pattern |
-| **Environment Issue** | Test env not matching prod | Fix environment | Document env requirement |
-| **Incomplete Scenario** | Missing steps or validations | Add missing steps | Document what was missing |
+| Failure Type | Description | Action | Document In |
+|-------------|-------------|--------|-------------|
+| **Selector Broken** | UI changed, selectors outdated | Edit step file | prd.md (selector notes) |
+| **Timing Issue** | Action too fast, element not ready | Add wait to step | prd.md (timing patterns) |
+| **Step Mismatch** | Step describes wrong flow | Edit step file | - |
+| **Missing Step** | Need additional step | Add step file, update scenario | - |
+| **App Bug** | Application has actual bug | Mark as known-fail | prd.md (known bugs) |
+| **Environment Issue** | Test env not matching prod | Fix environment | prd.md (env setup) |
 
-### Step 5: Update the Scenario (if needed)
+### Step 5: Update the Step File(s)
 
-Use `mcp__harshjudge__saveScenario` to save the updated scenario:
+**Option A: Edit a single step**
+
+Read and edit the specific step file:
+```
+.harshJudge/scenarios/{slug}/steps/{stepId}-{step-slug}.md
+```
+
+Example: Fix a broken selector in step 02:
+```markdown
+# Step 02: Enter Credentials
+
+## Description
+Enter username and password into the login form.
+
+## Preconditions
+- Login form is visible
+
+## Actions
+1. Enter email into email field
+2. Enter password into password field
+
+**Playwright:**
+```javascript
+await page.type('[data-testid="email"]', 'test@example.com');
+await page.type('[data-testid="password"]', 'password123');
+```
+
+## Expected Outcome
+- Email field shows entered email
+- Password field shows dots
+- Fields are not in error state
+```
+
+**Option B: Recreate entire scenario with updated steps**
+
+Use `createScenario` to update all steps at once:
 
 ```json
+// mcp__harshjudge__createScenario
 {
-  "slug": "portfolio-analysis",
-  "title": "Portfolio Analysis Full Flow",
-  "content": "# Updated content...",
-  "tags": ["portfolio", "analysis"]
+  "slug": "login-flow",
+  "title": "User Login Flow",
+  "steps": [
+    {
+      "title": "Navigate to login",
+      "description": "Open the login page",
+      "actions": "1. Navigate to /login\n2. Wait for page load",
+      "expectedOutcome": "Login form is visible"
+    },
+    {
+      "title": "Enter credentials",
+      "description": "Fill in the login form",
+      "preconditions": "Login form is visible",
+      "actions": "1. Enter email\n2. Enter password",
+      "expectedOutcome": "Fields are populated"
+    },
+    {
+      "title": "Submit form",
+      "description": "Submit and verify login",
+      "actions": "1. Click login button\n2. Wait for redirect",
+      "expectedOutcome": "Dashboard is displayed"
+    }
+  ]
 }
 ```
 
-**Note:** Scenarios stay focused on test steps. Move learnings to `iterations.md`.
+> Note: `createScenario` preserves existing run statistics when updating.
 
 ### Step 6: Re-run the Updated Scenario
 
 After updating, immediately re-run to validate the fix:
 
-```
-mcp__harshjudge__startRun({ scenarioSlug: "portfolio-analysis" })
-```
-
-Follow the standard run workflow.
+Follow the [run workflow](run.md):
+1. `startRun({ scenarioSlug: "login-flow" })`
+2. Execute each step via spawned agents
+3. `completeRun()` with final status
 
 ### Step 7: Record the Iteration
 
-**CRITICAL: After every iteration (pass or fail), update iterations.md**
+**Update prd.md with learnings:**
 
-#### 7a. Determine the next ITR number
-
-Check the last ITR-{NUMBER} in `iterations.md` and increment.
-
-#### 7b. Add new iteration record
-
-Append to the Iteration Records section:
+Add a new entry to the Iteration History section:
 
 ```markdown
-### ITR-{NUMBER}: {Brief Title}
+## Iteration History
 
-**Date:** {YYYY-MM-DD}
-**Project:** {project_name}
-**Scenario:** {scenario_slug}
-**Run ID:** {run_id}
-**Status:** RESOLVED | ONGOING | BLOCKED
+### ITR-001: Login selector fix (2024-01-15)
 
-#### Context
-{What was being tested and what triggered this iteration}
+**Scenario:** login-flow
+**Failed Step:** 02 (Enter credentials)
+**Root Cause:** Email input selector changed from `.email-input` to `[data-testid="email"]`
 
-#### Failure Analysis
-- **Failed Step:** {step number and name}
-- **Error:** {error message or symptom}
-- **Root Cause:** {what actually caused the failure}
+**Changes Made:**
+- Updated step-02 Playwright selectors to use data-testid attributes
 
-#### Evidence Reviewed
-| Type | File | Key Finding |
-|------|------|-------------|
-| Screenshot | {filename} | {what it showed} |
-| Log | {filename} | {relevant log entry} |
-
-#### Changes Made
-- {what was removed/changed}
-+ {what was added/changed to}
-
-#### Learnings
-- **Selector:** {if selector mapping discovered}
-- **Timing:** {if timing requirement discovered}
-- **Pattern:** {if common pattern identified}
-
-#### Result
-- **Re-run Status:** PASS | FAIL
-- **Run ID:** {new_run_id}
-- **Notes:** {any additional context}
-```
-
-#### 7c. Update Quick Reference Tables (if applicable)
-
-**If new selector discovered:**
-```markdown
-| Logical Element | Selector | Discovered | Notes |
-|----------------|----------|------------|-------|
-| Analyze Button | .sidebar-action | ITR-003 | Was .analyze-btn |
-```
-
-**If timing requirement discovered:**
-```markdown
-| Operation | Wait Strategy | Duration | Scenario |
-|-----------|--------------|----------|----------|
-| Analysis completion | Wait for text | 30s | portfolio-analysis |
-```
-
-**If new failure pattern identified:**
-```markdown
-| Pattern | Symptom | Solution | Scenarios Affected |
-|---------|---------|----------|-------------------|
-| Sidebar buttons | Element not found | Check sidebar first | portfolio-analysis, reports |
+**Learning:**
+- Always prefer data-testid selectors over class names
+- Added selector convention note to Tech Stack section
 ```
 
 ### Step 8: Report Iteration Result
 
 ```
-Iteration complete: ITR-{NUMBER}
+Iteration complete: login-flow
 
-Scenario: {slug}
-Previous Run: {old_run_id} (FAIL)
-New Run: {new_run_id} (PASS/FAIL)
+Previous Run: {runId} (FAIL at step 02)
+New Run: {newRunId} (PASS)
 
 Changes:
-- {summary of changes made}
+- Updated step-02 selectors to use data-testid
 
-Learnings recorded in iterations.md:
-- {summary of new knowledge added}
+Learnings recorded in prd.md:
+- Selector convention: prefer data-testid attributes
 
 Next steps:
-- {if PASS: "Verify stability with additional runs"}
-- {if FAIL: "Continue iteration, check ITR-{NUMBER} for context"}
+- Verify stability with additional runs
+- Apply same selector fix to related scenarios
 ```
+
+---
 
 ## Iteration Patterns
 
 ### Pattern A: Progressive Refinement
 
 ```
-ITR-001: Initial scenario fails at step 3 (wrong selector)
-  -> Evidence shows button moved to sidebar
-  -> Update selector, add to Selector Mappings
+ITR-001: Initial scenario fails at step 03 (wrong selector)
+  → Review step-03/evidence/after.png shows button moved
+  → Edit step-03 file with correct selector
+  → Document selector mapping in prd.md
 
-ITR-002: Same scenario fails at step 5 (timeout)
-  -> Evidence shows operation takes 30s
-  -> Add wait, add to Timing Requirements
+ITR-002: Same scenario fails at step 05 (timeout)
+  → Review shows operation takes 10s
+  → Add browser_wait_for to step-05
+  → Document timing requirement in prd.md
 
 ITR-003: Scenario passes
-  -> Document success, update Statistics
+  → Document success, update statistics
 ```
 
 ### Pattern B: Knowledge Reuse
 
 ```
 New scenario fails with "Element not found"
-  -> Check iterations.md Selector Mappings
-  -> Pattern exists from ITR-001
-  -> Apply known solution immediately
-  -> Document as "Applied ITR-001 pattern" in new ITR
+  → Check prd.md for selector conventions
+  → Pattern exists from ITR-001
+  → Apply same data-testid approach
+  → Document as "Applied ITR-001 pattern"
 ```
 
-### Pattern C: Bug Discovery
+### Pattern C: Step Addition
 
 ```
-ITR-005: Scenario fails
-  -> Evidence shows application error (not test error)
-  -> Status: BLOCKED
-  -> Add to Failure Patterns as "App Bug"
-  -> Report bug to development team
-  -> Re-iterate after bug fix
+Scenario fails because expected element requires prior action
+  → Review evidence shows missing click
+  → Add new step file (03-open-dropdown.md)
+  → Update meta.yaml steps array via createScenario
+  → Renumber subsequent steps
 ```
+
+---
 
 ## Best Practices
 
-### 1. Always Check iterations.md First
+### 1. Review Step Evidence First
 
-Before debugging, check if this pattern is known. Saves time and ensures consistency.
+Before changing anything, examine:
+- `step-XX/evidence/before.png` - Initial state
+- `step-XX/evidence/after.png` - Result state
+- `result.json` - Error messages
 
-### 2. Keep Iteration Records Complete
+### 2. Edit Individual Steps When Possible
 
-Every ITR record should have:
-- Clear context (what was being tested)
-- Evidence references (which files reviewed)
-- Specific changes (diff format preferred)
-- Learnings (what we now know)
+For small fixes, edit the step `.md` file directly rather than recreating the entire scenario.
 
-### 3. Update Quick Reference Tables
+### 3. Use createScenario for Major Changes
 
-When you discover:
-- A new selector mapping -> Add to Selector Mappings table
-- A timing requirement -> Add to Timing Requirements table
-- A failure pattern -> Add to Common Failure Patterns table
+When adding/removing steps or reorganizing, use `createScenario` to rebuild the scenario structure.
 
-### 4. Use Evidence-Driven Updates
+### 4. Document Learnings in prd.md
 
-**Always base changes on evidence, not guesses:**
-- Screenshot shows wrong element? Update selector, document mapping
-- Log shows timeout? Add wait, document timing requirement
-- Same failure twice? It's a pattern, document it
+After each successful iteration:
+- Add entry to Iteration History
+- Update relevant sections (selectors, timing, env)
+- Note patterns that apply to other scenarios
 
 ### 5. Small Iterations
 
 Make one change per iteration:
 - Easier to identify what fixed the issue
-- Clearer ITR records
+- Clearer documentation
 - Less risk of introducing new problems
+
+---
 
 ## Error Handling
 
 | Error | Action |
 |-------|--------|
 | `getStatus` fails | Check if HarshJudge initialized, scenario exists |
-| `saveScenario` fails | Check slug format, file permissions |
-| `iterations.md` missing | Run setup to create assets |
-| New run fails same way | Check ITR records for missed context |
-| New run fails differently | Progress! Create new ITR record |
+| `createScenario` fails | Check slug format, step array validity |
+| Step file not found | Run was from v1 format, recreate scenario |
+| New run fails same way | Check if change was applied correctly |
+| New run fails differently | Progress! New issue to investigate |
 
 **On Error:**
 1. **STOP** - Do not proceed
 2. **Report** - Tool, params, error
-3. **Check assets** - Is pattern in iterations.md?
+3. **Check prd.md** - Is this a known pattern?
 4. **Do NOT retry** - Unless user instructs
-
-## Example: Complete Iteration with Asset Updates
-
-**Initial situation:** Portfolio Analysis test failing at step 3
-
-```
-User: The portfolio analysis test is failing. Help me fix it.
-
-AI: Let me first check iterations.md for known patterns...
-
-[Reads .harshJudge/assets/iterations.md]
-
-No existing pattern matches this failure. Let me analyze the run...
-
-[Calls getStatus]
-
-Failed at Step 3: "Click Analyze Portfolio button"
-Error: Element not found with selector ".analyze-btn"
-
-[Reviews dashboard evidence]
-
-Screenshot shows the "Analyze" button is in LEFT SIDEBAR with class "sidebar-action"
-
-[Updates scenario with saveScenario]
-[Re-runs scenario - PASSES]
-
-Now recording this iteration in iterations.md...
-
-[Updates iterations.md with ITR-001 record and Selector Mappings table]
-
-Iteration complete: ITR-001
-Learnings recorded for future reference.
-```
-
-## Post-Iteration Guidance
-
-After successful iteration:
-1. **Verify stability:** Run 2-3 more times to ensure it's not flaky
-2. **Check related scenarios:** Do other scenarios need the same fix?
-3. **Review Statistics:** Update By Scenario and By Failure Type in iterations.md

@@ -13,9 +13,10 @@ Use this workflow when user wants to:
 
 ## Assets Created
 
-This workflow creates the project knowledge assets:
-- `.harshJudge/assets/prd.md` - Product requirements document
-- `.harshJudge/assets/iterations.md` - Iteration knowledge base
+This workflow creates:
+- `.harshJudge/config.yaml` - Project configuration
+- `.harshJudge/prd.md` - Product requirements document
+- `.harshJudge/scenarios/` - Empty scenarios directory
 
 ## Workflow
 
@@ -48,7 +49,10 @@ The tool returns:
 ```json
 {
   "success": true,
-  "projectPath": "/path/to/.harshJudge",
+  "projectPath": ".harshJudge",
+  "configPath": ".harshJudge/config.yaml",
+  "prdPath": ".harshJudge/prd.md",
+  "scenariosPath": ".harshJudge/scenarios",
   "dashboardUrl": "http://localhost:3001",
   "message": "HarshJudge initialized successfully"
 }
@@ -57,30 +61,13 @@ The tool returns:
 **On Success:** Continue to Step 4
 **On Error:** STOP and report (see Error Scenarios below)
 
-### Step 4: Create Knowledge Assets
+### Step 4: Update PRD with Project Details
 
-After successful initialization, create the assets directory and files:
-
-#### 4a. Create assets directory
-```
-mkdir .harshJudge/assets
-```
-
-#### 4b. Create prd.md from template
-
-Read the template from skill: `assets/prd.md`
-
-Create `.harshJudge/assets/prd.md` with project-specific content:
-- Fill in projectName, baseUrl
-- Add tech stack if discovered
-- Add key flows if known
-- Leave other sections as placeholders
-
-#### 4c. Create iterations.md from template
-
-Read the template from skill: `assets/iterations.md`
-
-Create `.harshJudge/assets/iterations.md` with project name filled in.
+The `prd.md` file is created from a template. Update it with:
+- Product overview
+- Tech stack details
+- Test credentials
+- Environment setup instructions
 
 ### Step 5: Report Success
 
@@ -92,15 +79,13 @@ Dashboard: {dashboardUrl}
 
 Created structure:
 .harshJudge/
-  config.yaml
-  assets/
-    prd.md          <- Product requirements (update as you learn)
-    iterations.md   <- Iteration knowledge (grows with each fix)
-  scenarios/
-  .gitignore
+  config.yaml       # Project configuration
+  prd.md            # Product requirements (update with project details)
+  scenarios/        # Test scenarios (empty)
+  .gitignore        # Ignores large evidence files
 
 Next steps:
-1. Review and update .harshJudge/assets/prd.md with product details
+1. Update .harshJudge/prd.md with product details and test credentials
 2. Create your first test scenario
 3. Open {dashboardUrl} to view the dashboard
 ```
@@ -111,12 +96,17 @@ After successful setup:
 
 ```
 .harshJudge/
-  config.yaml        # Project configuration
-  assets/            # Knowledge assets
-    prd.md           # Product requirements document
-    iterations.md    # Iteration knowledge base
-  scenarios/         # Empty, ready for test scenarios
-  .gitignore         # Ignores large evidence files
+  config.yaml         # Project configuration
+  prd.md              # Product requirements document
+  scenarios/          # Empty, ready for test scenarios
+    {slug}/           # Created by createScenario
+      meta.yaml       # Scenario definition + stats
+      steps/          # Individual step files
+        01-step.md
+        02-step.md
+      runs/           # Run history with evidence
+  snapshots/          # Inspection tool outputs
+  .gitignore          # Ignores large evidence files
 ```
 
 Dashboard available at: `http://localhost:3001`
@@ -138,6 +128,6 @@ Dashboard available at: `http://localhost:3001`
 ## Post-Setup Guidance
 
 After successful initialization, suggest:
-1. **Update PRD:** "Review `.harshJudge/assets/prd.md` and add product details"
+1. **Update PRD:** "Review `.harshJudge/prd.md` and add product details, credentials"
 2. **Create scenario:** "Would you like to create a test scenario?"
 3. **View dashboard:** "Open {dashboardUrl} to view the testing dashboard"
