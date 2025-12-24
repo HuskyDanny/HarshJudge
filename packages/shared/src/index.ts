@@ -37,6 +37,7 @@ export type {
   ProjectStatus,
   RunSummary,
   ScenarioDetail,
+  StepInfo,
 } from './types/status.js';
 
 // MCP tool types - Zod schemas and inferred types

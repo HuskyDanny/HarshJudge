@@ -243,7 +243,7 @@ describe('ProjectListPanel', () => {
   });
 
   describe('Status indicators', () => {
-    it('renders status badges for each project', () => {
+    it('renders status badges for projects with runs', () => {
       render(
         <ProjectListPanel
           projects={mockProjects}
@@ -252,13 +252,14 @@ describe('ProjectListPanel', () => {
         />
       );
 
-      // Status badges are rendered as spans with specific colors
-      // We can verify they exist by checking for status badge elements
+      // Only projects with pass/fail status should have status badges
+      // 'never_run' projects should not show status badges
       const listItems = screen.getAllByRole('option');
-      listItems.forEach((item) => {
-        // Each list item should have a status badge (the colored dot)
-        expect(item.querySelector('.rounded-full')).toBeInTheDocument();
-      });
+
+      // First two projects (Auth Module, Checkout Flow) have pass/fail status
+      // Dashboard has 'never_run' so no badge
+      const passFailBadges = screen.getAllByRole('img');
+      expect(passFailBadges.length).toBe(2); // Only pass and fail projects
     });
   });
 

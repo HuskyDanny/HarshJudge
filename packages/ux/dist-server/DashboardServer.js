@@ -356,12 +356,18 @@ export class DashboardServer {
             }
             const recentRuns = await this.getRecentRuns(scenarioPath, 10);
             const metaData = meta || this.defaultMeta();
+            // Extract steps from meta.yaml (v2 structure)
+            const steps = (meta?.steps || []).map((step) => ({
+                id: step.id,
+                title: step.title,
+            }));
             return {
                 slug,
                 title: meta?.title || scenarioContent?.title || slug,
                 starred: meta?.starred ?? false,
                 tags: meta?.tags || scenarioContent?.tags || [],
-                stepCount: meta?.steps?.length ?? 0,
+                stepCount: steps.length,
+                steps,
                 content: scenarioContent?.content || '',
                 meta: metaData,
                 recentRuns,

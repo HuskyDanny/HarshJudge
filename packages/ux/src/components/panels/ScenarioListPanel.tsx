@@ -135,7 +135,6 @@ export const ScenarioListPanel: FC<ScenarioListPanelProps> = ({
       >
         {sortedScenarios.map((scenario) => {
           const isSelected = selectedScenario === scenario.slug;
-          const statusValue = scenario.lastResult || 'never_run';
 
           return (
             <li
@@ -173,7 +172,10 @@ export const ScenarioListPanel: FC<ScenarioListPanelProps> = ({
                 <span className="text-sm font-medium text-gray-200 truncate flex-1">
                   {scenario.title}
                 </span>
-                <StatusBadge status={statusValue} />
+                {/* Only show status badge if scenario has been run */}
+                {scenario.lastResult && (
+                  <StatusBadge status={scenario.lastResult} />
+                )}
               </div>
 
               {/* Tags and step count */}

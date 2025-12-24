@@ -3,7 +3,6 @@ import { useScenarioDetail } from '@/hooks';
 import { MarkdownContent } from '../common/MarkdownContent';
 import { TagChip } from '../common/TagChip';
 import { EmptyState, EyeIcon } from '../common/EmptyState';
-import { ScenarioStats } from '../detail/ScenarioStats';
 import { RunHistoryList } from '../detail/RunHistoryList';
 import { formatRelativeTime } from '@/lib';
 
@@ -91,12 +90,6 @@ export const ScenarioDetailPanel: FC<ScenarioDetailPanelProps> = ({
           </p>
         )}
       </header>
-
-      {/* Statistics section */}
-      <section className="mb-6">
-        <h3 className="text-sm font-medium text-gray-400 mb-3">Statistics</h3>
-        <ScenarioStats meta={scenario.meta} />
-      </section>
 
       {/* Scenario content (Markdown) */}
       {scenario.content && (

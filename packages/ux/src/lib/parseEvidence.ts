@@ -246,3 +246,71 @@ export function parseAllEvidence(paths: string[]): ParsedEvidenceCollection {
 
   return collection;
 }
+
+/**
+ * Evidence categorized for StepEvidenceView component
+ */
+export interface CategorizedStepEvidence {
+  images: ParsedEvidence[];
+  logs: ParsedEvidence[];
+  dbSnapshots: ParsedEvidence[];
+}
+
+/**
+ * Filter and categorize evidence for a specific step
+ *
+ * @param paths - Array of evidence file paths
+ * @param stepId - Step ID (zero-padded string like "01")
+ * @returns Evidence collection for the specific step
+ */
+export function getEvidenceForStep(paths: string[], stepId: string): CategorizedStepEvidence {
+  const stepNumber = parseInt(stepId, 10);
+
+  const result: CategorizedStepEvidence = {
+    images: [],
+    logs: [],
+    dbSnapshots: [],
+  };
+
+  for (const filePath of paths) {
+    const evidence = parseEvidenceFile(filePath);
+    if (!evidence || evidence.number !== stepNumber) continue;
+
+    switch (evidence.type) {
+      case 'screenshot':
+        result.images.push(evidence);
+        break;
+      case 'console_log':
+      case 'network_log':
+      case 'html_snapshot':
+      case 'custom':
+        // All log-type evidence goes to logs tab
+        result.logs.push(evidence);
+        break;
+      case 'db_snapshot':
+        result.dbSnapshots.push(evidence);
+        break;
+    }
+  }
+
+  return result;
+}
+
+/**
+ * Get set of step IDs that have evidence
+ *
+ * @param paths - Array of evidence file paths
+ * @returns Set of step IDs (zero-padded strings) that have evidence
+ */
+export function getStepsWithEvidence(paths: string[]): Set<string> {
+  const stepsWithEvidence = new Set<string>();
+
+  for (const filePath of paths) {
+    const evidence = parseEvidenceFile(filePath);
+    if (evidence && evidence.number > 0) {
+      stepsWithEvidence.add(String(evidence.number).padStart(2, '0'));
+    }
+  }
+
+  return stepsWithEvidence;
+}

@@ -120,7 +120,10 @@ export const ProjectListPanel: FC<ProjectListPanelProps> = ({
                 <span className="text-sm font-medium text-gray-200 truncate">
                   {project.name}
                 </span>
-                <StatusBadge status={project.overallStatus} />
+                {/* Only show status badge if project has runs */}
+                {project.overallStatus !== 'never_run' && (
+                  <StatusBadge status={project.overallStatus as 'pass' | 'fail' | 'running'} />
+                )}
               </div>
               <span className="text-xs text-gray-500">
                 {project.scenarioCount} {project.scenarioCount === 1 ? 'scenario' : 'scenarios'}

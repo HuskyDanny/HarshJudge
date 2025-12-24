@@ -32,12 +32,10 @@ const mockRuns: RunSummary[] = [
 
 describe('RunHistoryList', () => {
   describe('Empty state', () => {
-    it('shows empty message when no runs', () => {
-      render(<RunHistoryList runs={[]} />);
-
-      expect(
-        screen.getByText('No runs yet. Run this scenario to see results here.')
-      ).toBeInTheDocument();
+    it('returns null when no runs', () => {
+      const { container } = render(<RunHistoryList runs={[]} />);
+      // Component returns null for empty runs
+      expect(container.firstChild).toBeNull();
     });
   });
 

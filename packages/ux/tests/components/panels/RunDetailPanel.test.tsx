@@ -2,8 +2,9 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { RunDetailPanel } from '../../../src/components/panels/RunDetailPanel';
 import type { RunDetail } from '../../../src/services/DataService';
+import type { ScenarioDetail } from '@harshjudge/shared';
 
-// Mock the hooks
+// Mock run detail data
 const mockRunDetail: RunDetail = {
   runId: 'test-run-123',
   scenarioSlug: 'login-test',
@@ -12,14 +13,38 @@ const mockRunDetail: RunDetail = {
     status: 'pass',
     duration: 5000,
     completedAt: '2025-01-15T10:00:00Z',
+    startedAt: '2025-01-15T09:59:55Z',
     failedStep: null,
     errorMessage: null,
   },
   evidencePaths: [
-    '/evidence/step-01-navigate.png',
-    '/evidence/step-02-click.png',
-    '/evidence/step-03-fill.png',
+    '/project/.harshJudge/scenarios/login-test/runs/test-run-123/step-01/evidence/screenshot.png',
+    '/project/.harshJudge/scenarios/login-test/runs/test-run-123/step-02/evidence/screenshot.png',
+    '/project/.harshJudge/scenarios/login-test/runs/test-run-123/step-03/evidence/screenshot.png',
   ],
+};
+
+const mockScenarioDetail: ScenarioDetail = {
+  slug: 'login-test',
+  title: 'Login Test',
+  starred: false,
+  tags: ['auth'],
+  stepCount: 3,
+  steps: [
+    { id: '01', title: 'Navigate to login' },
+    { id: '02', title: 'Enter credentials' },
+    { id: '03', title: 'Submit form' },
+  ],
+  content: '',
+  meta: {
+    totalRuns: 5,
+    passCount: 4,
+    failCount: 1,
+    lastRun: '2025-01-15T10:00:00Z',
+    lastResult: 'pass',
+    avgDuration: 4500,
+  },
+  recentRuns: [],
 };
 
 const mockFailedRunDetail: RunDetail = {
@@ -30,20 +55,29 @@ const mockFailedRunDetail: RunDetail = {
     status: 'fail',
     duration: 3000,
     completedAt: '2025-01-15T11:00:00Z',
-    failedStep: '02', // v2: zero-padded string
+    startedAt: '2025-01-15T10:59:57Z',
+    failedStep: '02',
     errorMessage: 'Element not found: #submit-button',
   },
   evidencePaths: [
-    '/evidence/step-01-navigate.png',
-    '/evidence/step-02-click.png',
+    '/project/.harshJudge/scenarios/login-test/runs/test-run-456/step-01/evidence/screenshot.png',
+    '/project/.harshJudge/scenarios/login-test/runs/test-run-456/step-02/evidence/screenshot.png',
   ],
 };
 
 let mockUseRunDetail = vi.fn();
+let mockUseScenarioDetail = vi.fn();
 
 vi.mock('../../../src/hooks', () => ({
   useRunDetail: (projectPath: string, scenarioSlug: string, runId: string) =>
     mockUseRunDetail(projectPath, scenarioSlug, runId),
+  useScenarioDetail: (projectPath: string, scenarioSlug: string) =>
+    mockUseScenarioDetail(projectPath, scenarioSlug),
+  useStepEvidence: () => ({
+    evidence: { images: [], logs: [], dbSnapshots: [] },
+    stepsWithEvidence: new Set(),
+    hasEvidence: false,
+  }),
   useKeyboardNavigation: () => ({
     handleKeyDown: vi.fn(),
     containerRef: { current: null },
@@ -58,6 +92,12 @@ vi.mock('../../../src/contexts/FileWatcherContext', () => ({
 describe('RunDetailPanel', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Default mocks
+    mockUseScenarioDetail.mockReturnValue({
+      scenarioDetail: mockScenarioDetail,
+      loading: false,
+      error: null,
+    });
   });
 
   describe('loading state', () => {
@@ -144,7 +184,7 @@ describe('RunDetailPanel', () => {
       expect(screen.getByText('Run #test-run')).toBeInTheDocument();
     });
 
-    it('displays step counter', () => {
+    it('displays step counter when steps are available', () => {
       mockUseRunDetail.mockReturnValue({
         runDetail: mockRunDetail,
         loading: false,
@@ -209,8 +249,8 @@ describe('RunDetailPanel', () => {
     });
   });
 
-  describe('timeline interaction', () => {
-    it('renders step thumbnails', () => {
+  describe('step selector', () => {
+    it('renders step tabs from scenario detail', () => {
       mockUseRunDetail.mockReturnValue({
         runDetail: mockRunDetail,
         loading: false,
@@ -226,9 +266,9 @@ describe('RunDetailPanel', () => {
         />
       );
 
-      // Should have 3 step thumbnails
-      const stepButtons = screen.getAllByRole('button', { name: /Step \d/ });
-      expect(stepButtons).toHaveLength(3);
+      expect(screen.getByText('Navigate to login')).toBeInTheDocument();
+      expect(screen.getByText('Enter credentials')).toBeInTheDocument();
+      expect(screen.getByText('Submit form')).toBeInTheDocument();
     });
   });
 

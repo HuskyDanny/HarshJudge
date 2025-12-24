@@ -130,6 +130,7 @@ export class DataService {
         starred: false, // v1 DataService doesn't support starring
         tags: scenarioContent.tags,
         stepCount: 0, // v1 structure doesn't have steps
+        steps: [], // v1 structure doesn't have steps array
         content: scenarioContent.content,
         meta: metaData,
         recentRuns,
@@ -320,6 +321,30 @@ export class DataService {
 
   private async getEvidencePaths(runPath: string): Promise<string[]> {
     try {
+      // Check for v2 structure first (step-XX directories)
+      const runEntries = await readdir(runPath, { withFileTypes: true });
+      const stepDirs = runEntries.filter(
+        e => e.isDirectory() && e.name.startsWith('step-')
+      );
+
+      if (stepDirs.length > 0) {
+        // v2 structure: collect evidence from each step-XX/evidence/ directory
+        const allPaths: string[] = [];
+        for (const stepDir of stepDirs) {
+          const stepEvidencePath = join(runPath, stepDir.name, 'evidence');
+          const stepEvidenceExists = await this.pathExists(stepEvidencePath);
+          if (stepEvidenceExists) {
+            const entries = await readdir(stepEvidencePath);
+            const paths = entries
+              .filter(e => !e.endsWith('.meta.json'))
+              .map(e => join(stepEvidencePath, e));
+            allPaths.push(...paths);
+          }
+        }
+        return allPaths;
+      }
+
+      // v1 structure: evidence directly in run/evidence/
       const evidencePath = join(runPath, 'evidence');
       const exists = await this.pathExists(evidencePath);
 

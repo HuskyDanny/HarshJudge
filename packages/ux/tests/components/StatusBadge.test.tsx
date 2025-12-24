@@ -16,10 +16,10 @@ describe('StatusBadge', () => {
       expect(badge).toHaveClass('bg-red-500');
     });
 
-    it('renders gray for never_run status', () => {
-      render(<StatusBadge status="never_run" />);
+    it('renders yellow for running status', () => {
+      render(<StatusBadge status="running" />);
       const badge = screen.getByRole('img');
-      expect(badge).toHaveClass('bg-gray-500');
+      expect(badge).toHaveClass('bg-yellow-500');
     });
   });
 
@@ -59,9 +59,9 @@ describe('StatusBadge', () => {
       expect(screen.getByText('Some tests failing')).toBeInTheDocument();
     });
 
-    it('shows label text for never_run status when showLabel is true', () => {
-      render(<StatusBadge status="never_run" showLabel />);
-      expect(screen.getByText('Never run')).toBeInTheDocument();
+    it('shows label text for running status when showLabel is true', () => {
+      render(<StatusBadge status="running" showLabel />);
+      expect(screen.getByText('In progress')).toBeInTheDocument();
     });
 
     it('hides the dot from screen readers when showing label', () => {
@@ -93,11 +93,11 @@ describe('StatusBadge', () => {
       );
     });
 
-    it('has correct aria-label for never_run status', () => {
-      render(<StatusBadge status="never_run" />);
+    it('has correct aria-label for running status', () => {
+      render(<StatusBadge status="running" />);
       expect(screen.getByRole('img')).toHaveAttribute(
         'aria-label',
-        'Never run'
+        'In progress'
       );
     });
 

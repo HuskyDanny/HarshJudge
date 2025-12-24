@@ -23,7 +23,6 @@ export interface ProjectStatus {
   scenarioCount: number;
   passing: number;
   failing: number;
-  neverRun: number;
   scenarios: ScenarioSummary[];
 }
 
@@ -41,6 +40,14 @@ export interface RunSummary {
 }
 
 /**
+ * Step information for display in scenario detail
+ */
+export interface StepInfo {
+  id: string;
+  title: string;
+}
+
+/**
  * Detailed scenario information including content and recent runs
  */
 export interface ScenarioDetail {
@@ -49,6 +56,7 @@ export interface ScenarioDetail {
   starred: boolean;
   tags: string[];
   stepCount: number;
+  steps: StepInfo[];
   content: string;
   meta: ScenarioStats;
   recentRuns: RunSummary[];

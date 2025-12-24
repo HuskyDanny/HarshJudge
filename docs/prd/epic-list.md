@@ -25,4 +25,8 @@
 - Skill file consolidation (6.6)
 - Dashboard v2 adaptation (6.7)
 
+## Epic 7: Dashboard UX Refinements
+**Goal:** Improve dashboard usability with step-centric evidence view and remove confusing UI elements.
+- Step-centric evidence view (7.1)
+
 ---

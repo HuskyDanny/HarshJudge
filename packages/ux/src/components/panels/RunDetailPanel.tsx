@@ -1,12 +1,9 @@
 import { type FC, useState, useMemo, useCallback } from 'react';
-import { useRunDetail, useKeyboardNavigation } from '@/hooks';
-import { parseEvidencePaths, parseAllEvidence } from '@/lib';
+import { useRunDetail, useScenarioDetail, useStepEvidence, useKeyboardNavigation } from '@/hooks';
 import { StatusBadge } from '../common/StatusBadge';
-import { StepTimeline } from '../detail/StepTimeline';
-import { ScreenshotViewer } from '../detail/ScreenshotViewer';
-import { StepMetadata } from '../detail/StepMetadata';
+import { StepSelector } from '../detail/StepSelector';
+import { StepEvidenceView, type CategorizedEvidence } from '../detail/StepEvidenceView';
 import { LogSection } from '../detail/LogSection';
-import { EvidencePanel } from '../detail/EvidencePanel';
 import { EmptyState } from '../common/EmptyState';
 
 interface RunDetailPanelProps {
@@ -21,13 +18,12 @@ interface RunDetailPanelProps {
 }
 
 /**
- * Panel displaying run detail with screenshot timeline viewer
+ * Panel displaying run detail with step-centric evidence view.
  * Features:
- * - Horizontal timeline of step thumbnails
- * - Full-size screenshot viewer with zoom toggle
- * - Step metadata display
- * - Keyboard navigation (left/right arrows)
- * - Error overlay for failed steps
+ * - Horizontal step selector showing all scenario steps
+ * - Tabbed evidence viewer (Images, Logs, DB Verification)
+ * - Empty state messages for steps without evidence
+ * - Keyboard navigation support
  */
 export const RunDetailPanel: FC<RunDetailPanelProps> = ({
   projectPath,
@@ -35,49 +31,92 @@ export const RunDetailPanel: FC<RunDetailPanelProps> = ({
   runId,
   onBack,
 }) => {
-  const { runDetail, loading, error } = useRunDetail(projectPath, scenarioSlug, runId);
-  const [currentStepIndex, setCurrentStepIndex] = useState(0);
-  const [isZoomed, setIsZoomed] = useState(false);
+  const { runDetail, loading: runLoading, error: runError } = useRunDetail(projectPath, scenarioSlug, runId);
+  const { scenarioDetail, loading: scenarioLoading } = useScenarioDetail(projectPath, scenarioSlug);
 
-  // Parse evidence paths to extract step info (screenshots only for timeline)
-  const steps = useMemo(
-    () => parseEvidencePaths(runDetail?.evidencePaths || []),
-    [runDetail]
+  // Current selected step ID
+  const [currentStepId, setCurrentStepId] = useState<string | null>(null);
+
+  // Get steps from scenario detail (v2 structure)
+  const steps = useMemo(() => scenarioDetail?.steps || [], [scenarioDetail]);
+
+  // Get step evidence using the hook
+  const { evidence, stepsWithEvidence } = useStepEvidence(
+    runDetail?.evidencePaths || [],
+    currentStepId
   );
 
-  // Parse all evidence types for the evidence panel
-  const allEvidence = useMemo(
-    () => parseAllEvidence(runDetail?.evidencePaths || []),
-    [runDetail]
-  );
+  // Convert evidence to the format expected by StepEvidenceView
+  const categorizedEvidence: CategorizedEvidence = useMemo(() => ({
+    images: evidence.images.map(e => ({
+      path: e.path,
+      name: e.name,
+      type: e.type,
+      extension: e.extension,
+    })),
+    logs: evidence.logs.map(e => ({
+      path: e.path,
+      name: e.name,
+      type: e.type,
+      extension: e.extension,
+    })),
+    dbSnapshots: evidence.dbSnapshots.map(e => ({
+      path: e.path,
+      name: e.name,
+      type: e.type,
+      extension: e.extension,
+    })),
+  }), [evidence]);
 
-  // Check if there's non-screenshot evidence to show
-  const hasNonScreenshotEvidence = useMemo(
-    () =>
-      allEvidence.logs.length > 0 ||
-      allEvidence.dbSnapshots.length > 0 ||
-      allEvidence.networkLogs.length > 0 ||
-      allEvidence.htmlSnapshots.length > 0 ||
-      allEvidence.custom.length > 0,
-    [allEvidence]
-  );
+  // Auto-select first step when steps are loaded
+  useMemo(() => {
+    if (steps.length > 0 && !currentStepId) {
+      setCurrentStepId(steps[0]?.id || null);
+    }
+  }, [steps, currentStepId]);
 
-  // Get current step
-  const currentStep = steps[currentStepIndex];
+  // Get current step index for keyboard navigation
+  const currentStepIndex = useMemo(() => {
+    if (!currentStepId) return -1;
+    return steps.findIndex(s => s.id === currentStepId);
+  }, [steps, currentStepId]);
 
-  // Check if current step is the failed one
-  const isCurrentStepFailed =
-    runDetail?.result?.failedStep !== null &&
-    currentStep?.number === runDetail?.result?.failedStep;
+  // Get error message for current step if it failed
+  const currentStepError = useMemo(() => {
+    if (!runDetail?.result?.failedStep || !currentStepId) return null;
+    // failedStep is zero-padded string like "01"
+    if (runDetail.result.failedStep === currentStepId) {
+      return runDetail.result.errorMessage ?? null;
+    }
+    return null;
+  }, [runDetail, currentStepId]);
+
+  // Calculate step completion stats
+  const stepStats = useMemo(() => {
+    if (!runDetail?.result?.steps || runDetail.result.steps.length === 0) {
+      return null;
+    }
+    const stepResults = runDetail.result.steps;
+    const passedCount = stepResults.filter(s => s.status === 'pass').length;
+    const totalCount = stepResults.length;
+    const allPassed = passedCount === totalCount;
+    return { passedCount, totalCount, allPassed };
+  }, [runDetail]);
+
+  // Get current step result (for summary and status)
+  const currentStepResult = useMemo(() => {
+    if (!runDetail?.result?.steps || !currentStepId) return null;
+    return runDetail.result.steps.find(s => s.id === currentStepId) ?? null;
+  }, [runDetail, currentStepId]);
 
   // Keyboard navigation callback
   const handleKeyboardSelect = useCallback((index: number) => {
     if (index >= 0 && index < steps.length) {
-      setCurrentStepIndex(index);
+      setCurrentStepId(steps[index]?.id || null);
     }
-  }, [steps.length]);
+  }, [steps]);
 
-  // Keyboard navigation hook (horizontal for timeline)
+  // Keyboard navigation hook
   const { handleKeyDown, containerRef } = useKeyboardNavigation({
     items: steps,
     selectedIndex: currentStepIndex,
@@ -85,7 +124,7 @@ export const RunDetailPanel: FC<RunDetailPanelProps> = ({
     enabled: steps.length > 0,
   });
 
-  // Handle left/right arrow keys specifically for horizontal navigation
+  // Handle left/right arrow keys for horizontal step navigation
   const handleContainerKeyDown = (e: React.KeyboardEvent) => {
     if (steps.length === 0) return;
 
@@ -93,22 +132,22 @@ export const RunDetailPanel: FC<RunDetailPanelProps> = ({
       case 'ArrowLeft':
         e.preventDefault();
         if (currentStepIndex > 0) {
-          setCurrentStepIndex(currentStepIndex - 1);
+          setCurrentStepId(steps[currentStepIndex - 1]?.id || null);
         }
         break;
       case 'ArrowRight':
         e.preventDefault();
         if (currentStepIndex < steps.length - 1) {
-          setCurrentStepIndex(currentStepIndex + 1);
+          setCurrentStepId(steps[currentStepIndex + 1]?.id || null);
         }
         break;
       default:
-        // Delegate to general keyboard navigation for other keys
         handleKeyDown(e);
     }
   };
 
   // Loading state
+  const loading = runLoading || scenarioLoading;
   if (loading) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -120,11 +159,11 @@ export const RunDetailPanel: FC<RunDetailPanelProps> = ({
   }
 
   // Error state
-  if (error) {
+  if (runError) {
     return (
       <EmptyState
         title="Error loading run"
-        description={error}
+        description={runError}
       />
     );
   }
@@ -170,47 +209,51 @@ export const RunDetailPanel: FC<RunDetailPanelProps> = ({
           <StatusBadge status={runDetail.result.status} showLabel />
         )}
 
+        {/* Step completion stats */}
+        {stepStats && (
+          <span className={`text-sm font-medium ${
+            stepStats.allPassed ? 'text-green-400' : 'text-yellow-400'
+          }`}>
+            {stepStats.passedCount}/{stepStats.totalCount} steps passed
+          </span>
+        )}
+
         {/* Step counter */}
-        {steps.length > 0 && (
+        {steps.length > 0 && currentStepIndex >= 0 && (
           <span className="ml-auto text-sm text-gray-500">
             Step {currentStepIndex + 1} of {steps.length}
           </span>
         )}
       </header>
 
-      {/* Timeline */}
-      <StepTimeline
-        steps={steps}
-        currentIndex={currentStepIndex}
-        onStepSelect={setCurrentStepIndex}
-        failedStep={runDetail.result?.failedStep ?? null}
-      />
+      {/* Step selector - shows all steps from scenario meta */}
+      {steps.length > 0 ? (
+        <StepSelector
+          steps={steps}
+          currentStepId={currentStepId}
+          onStepSelect={setCurrentStepId}
+          stepsWithEvidence={stepsWithEvidence}
+          failedStepId={runDetail.result?.failedStep ?? null}
+        />
+      ) : (
+        <div className="p-4 bg-gray-800 border-b border-gray-700 text-center text-sm text-gray-500">
+          No steps defined for this scenario
+        </div>
+      )}
 
-      {/* Main screenshot area */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {currentStep ? (
-          <>
-            <ScreenshotViewer
-              imagePath={currentStep.path}
-              isZoomed={isZoomed}
-              onToggleZoom={() => setIsZoomed(!isZoomed)}
-              errorMessage={
-                isCurrentStepFailed ? runDetail.result?.errorMessage ?? null : null
-              }
-            />
-            <StepMetadata step={currentStep} />
-          </>
-        ) : (
-          <div className="flex-1 flex items-center justify-center">
-            <div className="text-sm text-gray-500">
-              No screenshots available for this run
-            </div>
-          </div>
-        )}
-      </div>
+      {/* Step evidence view - tabbed interface */}
+      {currentStepId && (
+        <StepEvidenceView
+          stepId={currentStepId}
+          evidence={categorizedEvidence}
+          errorMessage={currentStepError}
+          stepSummary={currentStepResult?.summary ?? null}
+          stepStatus={currentStepResult?.status ?? null}
+        />
+      )}
 
-      {/* Error log section for failed runs */}
-      {runDetail.result?.status === 'fail' && runDetail.result.errorMessage && (
+      {/* Error log section for failed runs (show at bottom) */}
+      {runDetail.result?.status === 'fail' && runDetail.result.errorMessage && !currentStepError && (
         <div className="p-4 border-t border-gray-700">
           <LogSection
             title="Error Log"
@@ -218,14 +261,6 @@ export const RunDetailPanel: FC<RunDetailPanelProps> = ({
             defaultExpanded={true}
           />
         </div>
-      )}
-
-      {/* Evidence panel for logs, DB verification, etc. */}
-      {hasNonScreenshotEvidence && (
-        <EvidencePanel
-          evidence={allEvidence}
-          currentStep={currentStep?.number}
-        />
       )}
 
       {/* Keyboard hint */}

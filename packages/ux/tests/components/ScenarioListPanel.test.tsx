@@ -271,7 +271,7 @@ describe('ScenarioListPanel', () => {
   });
 
   describe('Status badges', () => {
-    it('renders status badges for each scenario', () => {
+    it('renders status badges for scenarios with runs', () => {
       render(
         <ScenarioListPanel
           scenarios={mockScenarios}
@@ -280,9 +280,10 @@ describe('ScenarioListPanel', () => {
         />
       );
 
-      // Check status badges exist (rendered as img elements with aria-label)
+      // Only scenarios with lastResult (pass/fail) should have status badges
+      // user-profile has null lastResult so no badge
       const statusBadges = screen.getAllByRole('img');
-      expect(statusBadges.length).toBeGreaterThanOrEqual(3);
+      expect(statusBadges.length).toBe(2); // Only login-flow (pass) and checkout-process (fail)
     });
   });
 

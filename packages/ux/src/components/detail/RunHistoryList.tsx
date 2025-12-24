@@ -17,12 +17,9 @@ export const RunHistoryList: FC<RunHistoryListProps> = ({
   runs,
   onRunSelect,
 }) => {
+  // Return null for empty state - parent component can handle messaging if needed
   if (runs.length === 0) {
-    return (
-      <div className="text-sm text-gray-500 py-8 text-center bg-gray-800 rounded-lg">
-        No runs yet. Run this scenario to see results here.
-      </div>
-    );
+    return null;
   }
 
   return (
