@@ -132,6 +132,7 @@ const TOOLS = [
         status: { type: 'string', enum: ['pass', 'fail', 'skipped'], description: 'Step result status' },
         duration: { type: 'number', description: 'Step duration in milliseconds' },
         error: { type: 'string', description: 'Error message (if failed)' },
+        summary: { type: 'string', description: 'AI-generated summary describing what happened in this step and match result' },
       },
       required: ['runId', 'stepId', 'status', 'duration'],
     },

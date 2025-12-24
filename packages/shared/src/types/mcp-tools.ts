@@ -180,6 +180,8 @@ export const CompleteStepParamsSchema = z.object({
   status: z.enum(['pass', 'fail', 'skipped']),
   duration: z.number().nonnegative(),
   error: z.string().optional(),
+  /** AI-generated summary describing what happened in this step and match result */
+  summary: z.string().optional(),
 });
 export type CompleteStepParams = z.infer<typeof CompleteStepParamsSchema>;
 

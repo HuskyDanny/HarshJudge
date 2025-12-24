@@ -113,16 +113,25 @@ export async function handleCompleteRun(
 
   // 4. Check if run is already completed
   const resultPath = `${runPath}/${RESULT_FILE}`;
+  let existingResult: { status: string; steps?: unknown[] } | null = null;
+
   if (await fs.exists(resultPath)) {
-    throw new Error(`Run "${validated.runId}" is already completed.`);
+    existingResult = await fs.readJson<{ status: string; steps?: unknown[] }>(resultPath);
+    // Only reject if the run is truly completed (not "running" from completeStep)
+    if (existingResult.status !== 'running') {
+      throw new Error(`Run "${validated.runId}" is already completed.`);
+    }
   }
 
   // 5. Build steps array (v2)
   let steps: StepResult[];
 
   if (validated.steps && validated.steps.length > 0) {
-    // Use provided steps (v2 format)
+    // Use provided steps (v2 format from params)
     steps = validated.steps;
+  } else if (existingResult?.steps && Array.isArray(existingResult.steps) && existingResult.steps.length > 0) {
+    // Use steps from in-progress result.json (from completeStep calls)
+    steps = existingResult.steps as StepResult[];
   } else {
     // Backward compatibility: collect evidence from step directories
     const stepEvidence = await collectStepEvidence(fs, runPath);
@@ -135,12 +144,21 @@ export async function handleCompleteRun(
     }));
   }
 
-  // 6. Read startedAt from run.json if it exists
+  // 6. Read startedAt from existing result.json or run.json
   let startedAt: string | undefined;
-  const runJsonPath = `${runPath}/run.json`;
-  if (await fs.exists(runJsonPath)) {
-    const runData = await fs.readJson<{ startedAt?: string }>(runJsonPath);
-    startedAt = runData.startedAt;
+
+  // First try to get from existing result.json (from completeStep)
+  if (existingResult && 'startedAt' in existingResult) {
+    startedAt = (existingResult as { startedAt?: string }).startedAt;
+  }
+
+  // Fallback to run.json
+  if (!startedAt) {
+    const runJsonPath = `${runPath}/run.json`;
+    if (await fs.exists(runJsonPath)) {
+      const runData = await fs.readJson<{ startedAt?: string }>(runJsonPath);
+      startedAt = runData.startedAt;
+    }
   }
 
   // 7. Write result.json (v2 format)
@@ -158,26 +176,37 @@ export async function handleCompleteRun(
   };
   await fs.writeJson(resultPath, result);
 
-  // 8. Update scenario meta.yaml (stats only)
+  // 8. Update scenario meta.yaml (preserve all fields, update stats only)
   const metaPath = `${scenarioPath}/${META_FILE}`;
-  let meta: ScenarioStats;
 
+  // Read entire meta.yaml to preserve all fields (title, slug, starred, tags, steps, etc.)
+  let existingMeta: Record<string, unknown> = {};
   if (await fs.exists(metaPath)) {
-    meta = await fs.readYaml<ScenarioStats>(metaPath);
-  } else {
-    meta = { ...DEFAULT_SCENARIO_STATS };
+    existingMeta = await fs.readYaml<Record<string, unknown>>(metaPath);
   }
 
+  // Extract current stats with defaults
+  const currentStats: ScenarioStats = {
+    totalRuns: (existingMeta.totalRuns as number) ?? 0,
+    passCount: (existingMeta.passCount as number) ?? 0,
+    failCount: (existingMeta.failCount as number) ?? 0,
+    lastRun: (existingMeta.lastRun as string | null) ?? null,
+    lastResult: (existingMeta.lastResult as 'pass' | 'fail' | null) ?? null,
+    avgDuration: (existingMeta.avgDuration as number) ?? 0,
+  };
+
   // Update statistics
-  const newTotalRuns = meta.totalRuns + 1;
-  const newPassCount = meta.passCount + (validated.status === 'pass' ? 1 : 0);
-  const newFailCount = meta.failCount + (validated.status === 'fail' ? 1 : 0);
+  const newTotalRuns = currentStats.totalRuns + 1;
+  const newPassCount = currentStats.passCount + (validated.status === 'pass' ? 1 : 0);
+  const newFailCount = currentStats.failCount + (validated.status === 'fail' ? 1 : 0);
 
   // Calculate new average duration
-  const totalDuration = meta.avgDuration * meta.totalRuns + validated.duration;
+  const totalDuration = currentStats.avgDuration * currentStats.totalRuns + validated.duration;
   const newAvgDuration = Math.round(totalDuration / newTotalRuns);
 
-  const updatedMeta: ScenarioStats = {
+  // Merge updated stats back into existing meta (preserve all other fields)
+  const updatedMeta = {
+    ...existingMeta,
     totalRuns: newTotalRuns,
     passCount: newPassCount,
     failCount: newFailCount,

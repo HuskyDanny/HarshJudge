@@ -149,7 +149,8 @@ Agent returns:
   "runId": "abc123xyz",
   "stepId": "01",
   "status": "pass",
-  "duration": 3500
+  "duration": 3500,
+  "summary": "Successfully navigated to login page. Page loaded within 1.2s, login form is visible with email/password fields and submit button."
 }
 ```
 
@@ -163,6 +164,8 @@ Agent returns:
   "nextStepId": "02"  // null if last step or should stop
 }
 ```
+
+> **IMPORTANT**: Always provide a `summary` describing what happened in the step. This appears in the dashboard and helps users understand test results at a glance.
 
 #### 3e. Check Continue Condition
 
@@ -239,12 +242,14 @@ Status: {pass|fail|first step}
    - runId: "{runId}"
    - step: {stepNumber}  (e.g., 1 for step 01, 2 for step 02)
 6. Verify the expected outcome
+7. Write a summary describing what happened and whether expected outcome matched
 
 Return ONLY a JSON object:
 {
   "status": "pass" | "fail",
   "evidencePaths": ["path1.png", "path2.png"],
-  "error": null | "error message"
+  "error": null | "error message",
+  "summary": "Brief description of what happened and result (1-2 sentences)"
 }
 
 ## Important Rules

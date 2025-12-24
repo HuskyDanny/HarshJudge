@@ -166,6 +166,7 @@ export async function handleCompleteStep(
     duration: validated.duration,
     error: validated.error ?? null,
     evidenceFiles,
+    summary: validated.summary ?? null,
   };
 
   // Find existing step or add new one

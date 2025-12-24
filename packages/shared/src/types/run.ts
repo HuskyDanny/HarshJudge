@@ -9,6 +9,8 @@ export const StepResultSchema = z.object({
   duration: z.number().nonnegative().optional().default(0),
   error: z.string().nullable().default(null),
   evidenceFiles: z.array(z.string()).default([]),
+  /** AI-generated summary describing what happened in this step */
+  summary: z.string().nullable().optional().default(null),
 });
 export type StepResult = z.infer<typeof StepResultSchema>;
 
