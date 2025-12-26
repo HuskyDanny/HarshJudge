@@ -306,7 +306,7 @@ export class DashboardServer {
      */
     async getScenarios(projectPath) {
         try {
-            const scenariosPath = join(projectPath, 'scenarios');
+            const scenariosPath = join(projectPath, '.harshJudge', 'scenarios');
             const exists = await this.pathExists(scenariosPath);
             if (!exists) {
                 return [];
@@ -340,7 +340,7 @@ export class DashboardServer {
      */
     async getScenarioDetail(projectPath, slug) {
         try {
-            const scenarioPath = join(projectPath, 'scenarios', slug);
+            const scenarioPath = join(projectPath, '.harshJudge', 'scenarios', slug);
             const exists = await this.pathExists(scenarioPath);
             if (!exists) {
                 return null;
@@ -382,7 +382,7 @@ export class DashboardServer {
      */
     async getRunHistory(projectPath, scenarioSlug) {
         try {
-            const scenarioPath = join(projectPath, 'scenarios', scenarioSlug);
+            const scenarioPath = join(projectPath, '.harshJudge', 'scenarios', scenarioSlug);
             return await this.getRecentRuns(scenarioPath, 100);
         }
         catch {
@@ -394,7 +394,7 @@ export class DashboardServer {
      */
     async getRunDetail(projectPath, scenarioSlug, runId) {
         try {
-            const runPath = join(projectPath, 'scenarios', scenarioSlug, 'runs', runId);
+            const runPath = join(projectPath, '.harshJudge', 'scenarios', scenarioSlug, 'runs', runId);
             const exists = await this.pathExists(runPath);
             if (!exists) {
                 return null;
