@@ -14,6 +14,7 @@ import type {
   StepInfo,
 } from '@harshjudge/shared';
 import { DEFAULT_SCENARIO_STATS } from '@harshjudge/shared';
+import { PathResolver, createPathResolver } from './PathResolver.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -70,12 +71,14 @@ export interface DashboardServerOptions {
 export class DashboardServer {
   private server: Server | null = null;
   private port: number;
-  private projectPath: string;
+  private pathResolver: PathResolver;
   private distPath: string;
 
   constructor(options: DashboardServerOptions = {}) {
     this.port = options.port ?? 3000;
-    this.projectPath = options.projectPath ?? process.cwd();
+    // Use createPathResolver to auto-handle if .harshJudge path was passed
+    const projectPath = options.projectPath ?? process.cwd();
+    this.pathResolver = createPathResolver(projectPath);
     // Default to the dist directory relative to this file's location
     this.distPath = options.distPath ?? join(__dirname, '../../dist');
   }
@@ -367,23 +370,24 @@ export class DashboardServer {
    */
   private async getProjects(): Promise<ServerProjectSummary[]> {
     try {
-      const harshJudgePath = join(this.projectPath, '.harshJudge');
+      const harshJudgePath = this.pathResolver.getHarshJudgePath();
       const exists = await this.pathExists(harshJudgePath);
 
       if (!exists) {
         return [];
       }
 
-      const config = await this.readConfig(harshJudgePath);
+      const config = await this.readConfig();
       if (!config) {
         return [];
       }
 
-      const scenarios = await this.getScenarios(harshJudgePath);
+      // Use project root for getScenarios (it will use pathResolver internally)
+      const scenarios = await this.getScenarios(this.pathResolver.getProjectRoot());
       const overallStatus = this.calculateOverallStatus(scenarios);
 
       return [{
-        path: harshJudgePath,
+        path: this.pathResolver.getProjectRoot(),
         name: config.projectName,
         scenarioCount: scenarios.length,
         overallStatus,
@@ -395,10 +399,13 @@ export class DashboardServer {
 
   /**
    * Get all scenarios for a project
+   * @param projectPath - Project root path (NOT the .harshJudge path)
    */
   private async getScenarios(projectPath: string): Promise<ScenarioSummary[]> {
     try {
-      const scenariosPath = join(projectPath, '.harshJudge', 'scenarios');
+      // Create a resolver for the given project path
+      const resolver = createPathResolver(projectPath);
+      const scenariosPath = resolver.getScenariosDir();
       const exists = await this.pathExists(scenariosPath);
 
       if (!exists) {
@@ -412,7 +419,7 @@ export class DashboardServer {
 
       for (const dir of scenarioDirs) {
         const scenario = await this.readScenarioSummary(
-          join(scenariosPath, dir.name),
+          resolver.getScenarioDir(dir.name),
           dir.name
         );
         if (scenario) {
@@ -434,13 +441,15 @@ export class DashboardServer {
 
   /**
    * Get detailed scenario information including runs
+   * @param projectPath - Project root path (NOT the .harshJudge path)
    */
   private async getScenarioDetail(
     projectPath: string,
     slug: string
   ): Promise<ScenarioDetail | null> {
     try {
-      const scenarioPath = join(projectPath, '.harshJudge', 'scenarios', slug);
+      const resolver = createPathResolver(projectPath);
+      const scenarioPath = resolver.getScenarioDir(slug);
       const exists = await this.pathExists(scenarioPath);
 
       if (!exists) {
@@ -485,13 +494,15 @@ export class DashboardServer {
 
   /**
    * Get run history for a scenario
+   * @param projectPath - Project root path (NOT the .harshJudge path)
    */
   private async getRunHistory(
     projectPath: string,
     scenarioSlug: string
   ): Promise<RunSummary[]> {
     try {
-      const scenarioPath = join(projectPath, '.harshJudge', 'scenarios', scenarioSlug);
+      const resolver = createPathResolver(projectPath);
+      const scenarioPath = resolver.getScenarioDir(scenarioSlug);
       return await this.getRecentRuns(scenarioPath, 100);
     } catch {
       return [];
@@ -500,6 +511,7 @@ export class DashboardServer {
 
   /**
    * Get run detail including evidence paths
+   * @param projectPath - Project root path (NOT the .harshJudge path)
    */
   private async getRunDetail(
     projectPath: string,
@@ -507,7 +519,8 @@ export class DashboardServer {
     runId: string
   ): Promise<ServerRunDetail | null> {
     try {
-      const runPath = join(projectPath, '.harshJudge', 'scenarios', scenarioSlug, 'runs', runId);
+      const resolver = createPathResolver(projectPath);
+      const runPath = resolver.getRunDir(scenarioSlug, runId);
       const exists = await this.pathExists(runPath);
 
       if (!exists) {
@@ -539,9 +552,9 @@ export class DashboardServer {
     }
   }
 
-  private async readConfig(projectPath: string): Promise<HarshJudgeConfig | null> {
+  private async readConfig(): Promise<HarshJudgeConfig | null> {
     try {
-      const configPath = join(projectPath, 'config.yaml');
+      const configPath = this.pathResolver.getConfigPath();
       const content = await readFile(configPath, 'utf-8');
       return yaml.load(content) as HarshJudgeConfig;
     } catch {

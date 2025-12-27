@@ -19,7 +19,7 @@ export interface DashboardServerOptions {
 export declare class DashboardServer {
     private server;
     private port;
-    private projectPath;
+    private pathResolver;
     private distPath;
     constructor(options?: DashboardServerOptions);
     /**
@@ -65,18 +65,22 @@ export declare class DashboardServer {
     private getProjects;
     /**
      * Get all scenarios for a project
+     * @param projectPath - Project root path (NOT the .harshJudge path)
      */
     private getScenarios;
     /**
      * Get detailed scenario information including runs
+     * @param projectPath - Project root path (NOT the .harshJudge path)
      */
     private getScenarioDetail;
     /**
      * Get run history for a scenario
+     * @param projectPath - Project root path (NOT the .harshJudge path)
      */
     private getRunHistory;
     /**
      * Get run detail including evidence paths
+     * @param projectPath - Project root path (NOT the .harshJudge path)
      */
     private getRunDetail;
     private pathExists;
