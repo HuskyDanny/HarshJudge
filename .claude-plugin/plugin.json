@@ -1,0 +1,21 @@
+{
+  "name": "harshjudge",
+  "version": "0.3.1",
+  "description": "AI-native E2E testing orchestration for Claude Code. Create, run, and manage end-to-end test scenarios with visual evidence capture and a live dashboard.",
+  "author": {
+    "name": "Anthropic",
+    "url": "https://github.com/anthropics/harshjudge"
+  },
+  "repository": "https://github.com/anthropics/harshjudge",
+  "homepage": "https://github.com/anthropics/harshjudge#readme",
+  "license": "MIT",
+  "keywords": [
+    "e2e-testing",
+    "testing",
+    "automation",
+    "browser",
+    "playwright",
+    "mcp",
+    "claude-code"
+  ]
+}

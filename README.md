@@ -5,13 +5,11 @@ AI-native E2E testing orchestration for Claude Code. HarshJudge uses Claude Code
 ## Quick Start
 
 ```bash
-# 1. Install HarshJudge MCP server
-npm install -g @allenpan/harshjudge-mcp
+# In Claude Code, install the plugin:
+/plugin install @anthropics/harshjudge
 
-# 2. Configure Claude Code MCP (see below)
-
-# 3. In Claude Code, use the skill to initialize and test
-/harshjudge
+# Then ask Claude to set up testing:
+# "Initialize HarshJudge and create a test for the login flow"
 ```
 
 ## Prerequisites
@@ -22,7 +20,19 @@ npm install -g @allenpan/harshjudge-mcp
 
 ## Installation
 
-### npm Install
+### As Claude Code Plugin (Recommended)
+
+Install directly from GitHub — includes the skill, MCP server, and everything you need:
+
+```bash
+/plugin install @anthropics/harshjudge
+```
+
+That's it. The plugin auto-configures the MCP server and loads the HarshJudge skill.
+
+### Manual Install
+
+If you prefer to configure things yourself:
 
 ```bash
 npm install -g @allenpan/harshjudge-mcp
@@ -34,20 +44,18 @@ Or use with npx (no install required):
 npx @allenpan/harshjudge-mcp
 ```
 
-## Claude Code MCP Configuration
-
-Add the following to your Claude Code MCP settings:
+Then add the MCP server to your Claude Code settings:
 
 ```json
 {
   "mcpServers": {
     "harshjudge": {
       "command": "npx",
-      "args": ["@allenpan/harshjudge-mcp"]
+      "args": ["-y", "@allenpan/harshjudge-mcp"]
     },
     "playwright": {
       "command": "npx",
-      "args": ["@anthropic/playwright-mcp-server"]
+      "args": ["-y", "@anthropic/playwright-mcp-server"]
     }
   }
 }
@@ -157,9 +165,9 @@ netstat -ano | grep 7002
 ```
 
 #### "Skills not loading"
-1. Verify `.claude/skills/harshjudge/` exists (optional - skills enhance workflow)
-2. Check Claude Code skill settings
-3. Skills can be copied from the `skills/` directory in the HarshJudge repo
+1. Verify the plugin is installed: `/plugin list` should show `harshjudge`
+2. Restart Claude Code after plugin installation
+3. For manual installs, copy the `skills/` directory to your project
 
 ### Getting Help
 
