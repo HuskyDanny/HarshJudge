@@ -6,7 +6,7 @@ AI-native E2E testing orchestration for Claude Code. HarshJudge uses Claude Code
 
 ```bash
 # In Claude Code, install the plugin:
-/plugin install @anthropics/harshjudge
+/plugin install @HuskyDanny/HarshJudge
 
 # Then ask Claude to set up testing:
 # "Initialize HarshJudge and create a test for the login flow"
@@ -25,7 +25,7 @@ AI-native E2E testing orchestration for Claude Code. HarshJudge uses Claude Code
 Install directly from GitHub — includes the skill, MCP server, and everything you need:
 
 ```bash
-/plugin install @anthropics/harshjudge
+/plugin install @HuskyDanny/HarshJudge
 ```
 
 That's it. The plugin auto-configures the MCP server and loads the HarshJudge skill.
@@ -35,13 +35,13 @@ That's it. The plugin auto-configures the MCP server and loads the HarshJudge sk
 If you prefer to configure things yourself:
 
 ```bash
-npm install -g @allenpan/harshjudge-mcp
+npm install -g @allenpan2026/harshjudge-mcp
 ```
 
 Or use with npx (no install required):
 
 ```bash
-npx @allenpan/harshjudge-mcp
+npx @allenpan2026/harshjudge-mcp
 ```
 
 Then add the MCP server to your Claude Code settings:
@@ -51,7 +51,7 @@ Then add the MCP server to your Claude Code settings:
   "mcpServers": {
     "harshjudge": {
       "command": "npx",
-      "args": ["-y", "@allenpan/harshjudge-mcp"]
+      "args": ["-y", "@allenpan2026/harshjudge-mcp"]
     },
     "playwright": {
       "command": "npx",
@@ -153,7 +153,7 @@ After configuration, verify your setup in Claude Code:
 #### "MCP server not responding"
 1. Check Claude Code MCP settings syntax
 2. Restart Claude Code
-3. Verify `npx @allenpan/harshjudge-mcp` runs manually
+3. Verify `npx @allenpan2026/harshjudge-mcp` runs manually
 
 #### "Dashboard won't start"
 ```bash
@@ -171,7 +171,7 @@ netstat -ano | grep 7002
 
 ### Getting Help
 
-- File issues at [GitHub Issues](https://github.com/anthropics/harshjudge/issues)
+- File issues at [GitHub Issues](https://github.com/HuskyDanny/HarshJudge/issues)
 
 ## Development
 
@@ -180,7 +180,7 @@ netstat -ano | grep 7002
 ```
 HarshJudge/
 ├── packages/
-│   ├── mcp-server/    # @allenpan/harshjudge-mcp - MCP server (published)
+│   ├── mcp-server/    # @allenpan2026/harshjudge-mcp - MCP server (published)
 │   ├── ux/            # Dashboard UI (bundled into mcp-server)
 │   └── shared/        # Shared types (bundled into mcp-server)
 ├── skills/
@@ -203,7 +203,7 @@ HarshJudge/
 ### Building Individual Packages
 
 ```bash
-pnpm --filter @allenpan/harshjudge-mcp build
+pnpm --filter @allenpan2026/harshjudge-mcp build
 pnpm --filter @harshjudge/ux build
 pnpm --filter @harshjudge/shared build
 ```

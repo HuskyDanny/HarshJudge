@@ -1,5 +1,5 @@
 {
-  "name": "@allenpan/harshjudge-mcp",
+  "name": "@allenpan2026/harshjudge-mcp",
   "version": "0.3.2",
   "description": "AI-native E2E testing orchestration MCP server for Claude Code. Create, run, and manage end-to-end test scenarios with visual evidence capture.",
   "type": "module",
@@ -41,17 +41,20 @@
     "ai",
     "anthropic"
   ],
-  "author": "Anthropic",
+  "author": {
+    "name": "Allen Pan",
+    "email": "therealjunchen@163.com"
+  },
   "license": "MIT",
-  "mcpName": "io.github.allenpan/harshjudge",
+  "mcpName": "io.github.allenpan2026/harshjudge",
   "repository": {
     "type": "git",
-    "url": "https://github.com/anthropics/harshjudge.git",
+    "url": "https://github.com/HuskyDanny/HarshJudge.git",
     "directory": "packages/mcp-server"
   },
-  "homepage": "https://github.com/anthropics/harshjudge#readme",
+  "homepage": "https://github.com/HuskyDanny/HarshJudge#readme",
   "bugs": {
-    "url": "https://github.com/anthropics/harshjudge/issues"
+    "url": "https://github.com/HuskyDanny/HarshJudge/issues"
   },
   "engines": {
     "node": ">=18.0.0"
