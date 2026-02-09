@@ -26,7 +26,7 @@ cd packages/mcp-server && npm publish --access public
 
 ```
 packages/
-  mcp-server/     # MCP tools (@allenpan/harshjudge-mcp)
+  mcp-server/     # MCP tools (@allenpan2026/harshjudge-mcp)
   shared/         # Shared types
   ux/             # Dashboard UI
 skills/

@@ -5,10 +5,13 @@ AI-native E2E testing orchestration for Claude Code. HarshJudge uses Claude Code
 ## Quick Start
 
 ```bash
-# In Claude Code, install the plugin:
-/plugin install @HuskyDanny/HarshJudge
+# 1. Add the HarshJudge marketplace:
+/plugin marketplace add HuskyDanny/harshjudge-marketplace
 
-# Then ask Claude to set up testing:
+# 2. Install the plugin:
+/plugin install harshjudge@harshjudge-marketplace
+
+# 3. Ask Claude to set up testing:
 # "Initialize HarshJudge and create a test for the login flow"
 ```
 
@@ -22,10 +25,11 @@ AI-native E2E testing orchestration for Claude Code. HarshJudge uses Claude Code
 
 ### As Claude Code Plugin (Recommended)
 
-Install directly from GitHub — includes the skill, MCP server, and everything you need:
+Add the marketplace and install — includes the skill, MCP server, and everything you need:
 
 ```bash
-/plugin install @HuskyDanny/HarshJudge
+/plugin marketplace add HuskyDanny/harshjudge-marketplace
+/plugin install harshjudge@harshjudge-marketplace
 ```
 
 That's it. The plugin auto-configures the MCP server and loads the HarshJudge skill.
