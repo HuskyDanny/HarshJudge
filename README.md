@@ -1,6 +1,21 @@
 # HarshJudge
 
-AI-native E2E testing orchestration for Claude Code. HarshJudge uses Claude Code skills and MCP tools to create, run, and manage end-to-end test scenarios with visual evidence capture.
+AI-native E2E testing orchestration for Claude Code. Create, run, and manage end-to-end test scenarios with visual evidence capture — powered by MCP tools and Claude Code skills.
+
+**Key design:** file-system-as-database (local-first, git-friendly, no cloud dependencies).
+
+## Architecture
+
+```
+Claude Code Skill  →  MCP Server  →  Dashboard UI
+   (workflow)         (storage)      (visualization)
+```
+
+| Component | Description |
+|-----------|-------------|
+| **Skill** | Structured workflows that guide Claude through test creation, execution, and iteration |
+| **MCP Server** | 12 tools for managing scenarios, runs, evidence, and dashboard lifecycle |
+| **Dashboard** | React-based 3-column UI for browsing results with real-time file watching |
 
 ## Quick Start
 
@@ -19,7 +34,7 @@ AI-native E2E testing orchestration for Claude Code. HarshJudge uses Claude Code
 
 - **Node.js**: 18+ LTS
 - **Claude Code**: Latest version with MCP support
-- **Playwright MCP Server**: For browser automation
+- **Playwright MCP Server**: For browser automation (screenshots, navigation, clicks)
 
 ## Installation
 
@@ -32,7 +47,7 @@ Add the marketplace and install — includes the skill, MCP server, and everythi
 /plugin install harshjudge@harshjudge-marketplace
 ```
 
-That's it. The plugin auto-configures the MCP server and loads the HarshJudge skill.
+The plugin auto-configures the MCP server and loads the HarshJudge skill.
 
 ### Manual Install
 
@@ -65,110 +80,108 @@ Then add the MCP server to your Claude Code settings:
 }
 ```
 
-### MCP Tools Available
+## MCP Tools
 
 | Tool | Purpose |
 |------|---------|
-| `initProject` | Initialize HarshJudge in your project |
-| `saveScenario` | Save a test scenario |
-| `startRun` | Start a new test run |
-| `recordEvidence` | Record test evidence (screenshots, logs, etc.) |
-| `completeRun` | Complete a test run with results |
-| `getStatus` | Get project and scenario status |
+| `initProject` | Initialize `.harshJudge/` directory structure |
+| `createScenario` | Create test scenarios with structured step files |
+| `toggleStar` | Mark/unmark scenarios as favorites |
+| `startRun` | Begin a new test execution |
+| `recordEvidence` | Capture screenshots, logs, DB snapshots |
+| `completeStep` | Mark individual step as pass/fail/skipped |
+| `completeRun` | Finalize run and update scenario statistics |
+| `getStatus` | Query project-wide or per-scenario status |
 | `openDashboard` | Start the dashboard UI server |
 | `closeDashboard` | Stop the dashboard server |
-| `getDashboardStatus` | Check dashboard running status |
+| `getDashboardStatus` | Check if dashboard is running |
+| `saveScenario` | *(deprecated)* Legacy flat markdown format |
 
 ## Usage with Claude Code
 
 ### 1. Initialize Project
 
-In Claude Code, the `initProject` MCP tool creates the HarshJudge structure:
+Ask Claude: *"Initialize HarshJudge in this project"*
 
-```
-your-project/
-├── .harshJudge/
-│   ├── config.yaml              # Project configuration
-│   ├── scenarios/               # Test scenarios
-│   └── .dashboard-state.json    # Dashboard process state
-└── ...
-```
+This calls `initProject` and creates the `.harshJudge/` structure with a config file, PRD template, and scenarios directory.
 
 ### 2. Create Test Scenarios
 
-Use the HarshJudge skill in Claude Code:
-- `/harshjudge` - Activates the testing skill
-- Claude will guide you through creating scenarios
+Use the HarshJudge skill: `/harshjudge`
+
+Claude guides you through defining scenarios with steps. Each step includes:
+- **Title** and description
+- **Actions** to perform
+- **Expected outcome** to verify
 
 ### 3. Run Tests
 
-Claude Code with Playwright MCP executes tests and records evidence:
-- Screenshots at each step
-- Console logs
-- Network activity
+Claude orchestrates test execution using Playwright MCP for browser automation:
+- Screenshots before/after every action
+- Console and network logs
 - Database snapshots (if configured)
+- Each step tracked individually with pass/fail status
 
 ### 4. View Results
 
-Use `openDashboard` tool to launch the visual dashboard:
-- 3-column layout: Scenarios | Runs | Evidence
-- Real-time updates
-- Screenshot timeline viewer
+Use `openDashboard` to launch the visual dashboard (default port 7002):
+- **3-column layout**: Projects → Scenarios → Detail
+- **Real-time updates** via file watching
+- **Evidence viewers**: screenshot timeline, log viewer, DB snapshots
+- **Statistics**: pass rate, run history, average duration
 
-## Project Structure After Init
+## Data Structure
 
 ```
 your-project/
-├── .harshJudge/
-│   ├── config.yaml              # Project configuration
-│   ├── scenarios/               # Test scenarios
-│   │   └── login-flow/          # Example scenario
-│   │       ├── scenario.md      # Scenario definition
-│   │       ├── meta.yaml        # Run statistics
-│   │       └── runs/            # Run history with evidence
-│   │           └── run_abc123/
-│   │               ├── result.json
-│   │               └── evidence/
-│   │                   ├── step-1-screenshot.png
-│   │                   └── step-1-screenshot.meta.json
-│   └── .gitignore               # Ignore large evidence files
-└── ...
+└── .harshJudge/
+    ├── config.yaml                 # Project configuration
+    ├── prd.md                      # Product requirements
+    ├── .gitignore                  # Excludes large evidence files
+    └── scenarios/
+        └── login-flow/             # Example scenario
+            ├── meta.yaml           # Metadata + run statistics
+            ├── steps/              # Individual step definitions
+            │   ├── 01-navigate.md
+            │   ├── 02-fill-form.md
+            │   └── 03-verify.md
+            └── runs/
+                └── {runId}/
+                    ├── result.json          # Run outcome
+                    ├── step-01/
+                    │   └── evidence/
+                    │       ├── screenshot-before.png
+                    │       ├── screenshot-before.meta.json
+                    │       ├── screenshot-after.png
+                    │       └── screenshot-after.meta.json
+                    ├── step-02/evidence/...
+                    └── step-03/evidence/...
 ```
 
-## Verification Steps
+## Verification
 
-After configuration, verify your setup in Claude Code:
+After installation, verify your setup in Claude Code:
 
-1. **Check MCP tools are available:**
-   - HarshJudge tools should appear in Claude Code's tool list
-
-2. **Initialize project:**
-   - Ask Claude: "Initialize HarshJudge in this project"
-   - This calls `initProject` and optionally opens the dashboard
-
-3. **Check status:**
-   - Ask Claude: "What's the HarshJudge status?"
-   - This calls `getStatus` to show scenarios and results
+1. **Check MCP tools are available** — HarshJudge tools should appear in Claude Code's tool list
+2. **Initialize project** — Ask Claude: *"Initialize HarshJudge in this project"*
+3. **Check status** — Ask Claude: *"What's the HarshJudge status?"*
 
 ## Troubleshooting
 
-### Common Issues
-
-#### "MCP server not responding"
+### "MCP server not responding"
 1. Check Claude Code MCP settings syntax
 2. Restart Claude Code
 3. Verify `npx @allenpan2026/harshjudge-mcp` runs manually
 
-#### "Dashboard won't start"
+### "Dashboard won't start"
 ```bash
 # Check if port is in use
-netstat -ano | grep 7002
+lsof -i :7002
 
-# Use different port via MCP tool
-# openDashboard with port: 7003
+# Use a different port via the openDashboard tool (port parameter)
 ```
 
-#### "Skills not loading"
+### "Skills not loading"
 1. Verify the plugin is installed: `/plugin list` should show `harshjudge`
 2. Restart Claude Code after plugin installation
 3. For manual installs, copy the `skills/` directory to your project
@@ -184,22 +197,46 @@ netstat -ano | grep 7002
 ```
 HarshJudge/
 ├── packages/
-│   ├── mcp-server/    # @allenpan2026/harshjudge-mcp - MCP server (published)
-│   ├── ux/            # Dashboard UI (bundled into mcp-server)
-│   └── shared/        # Shared types (bundled into mcp-server)
+│   ├── mcp-server/     # @allenpan2026/harshjudge-mcp (published to npm)
+│   │   ├── src/
+│   │   │   ├── server.ts        # MCP server entry (stdio transport)
+│   │   │   ├── handlers/        # 12 tool implementations
+│   │   │   ├── services/        # FileSystemService, DashboardManager
+│   │   │   └── utils/
+│   │   └── dist/                # Compiled output + bundled UX assets
+│   ├── shared/         # @harshjudge/shared (types + Zod schemas)
+│   │   └── src/types/           # config, scenario, run, evidence, status, mcp-tools
+│   └── ux/             # @harshjudge/ux (React dashboard + HTTP server)
+│       └── src/
+│           ├── components/      # 22 React components
+│           ├── server/          # DashboardServer, PathResolver
+│           ├── hooks/           # 7 custom hooks
+│           └── services/        # DataService, ApiDataService, FileWatcher
 ├── skills/
-│   └── harshjudge/    # Claude Code skills (for reference/copying)
-├── docs/              # Documentation
-└── examples/          # Example projects
+│   └── harshjudge/     # Claude Code skill (5 workflow guides)
+├── docs/               # Architecture docs, PRD, user stories
+└── examples/           # Demo projects
 ```
 
-### Development Commands
+### Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| **Build** | Turborepo + pnpm + tsup (MCP) + Vite (UX) |
+| **Language** | TypeScript 5.3+, Node.js 18+ |
+| **Validation** | Zod schemas for all MCP tool params |
+| **Frontend** | React 18 + Tailwind CSS |
+| **Testing** | Vitest + React Testing Library + memfs |
+| **Protocol** | MCP SDK 1.0 (stdio transport) |
+
+### Commands
 
 | Command | Description |
 |---------|-------------|
-| `pnpm build` | Build all packages |
-| `pnpm dev` | Start development mode |
-| `pnpm test` | Run tests |
+| `pnpm install` | Install all dependencies |
+| `pnpm build` | Build all packages (Turborepo) |
+| `pnpm dev` | Start development mode (watch) |
+| `pnpm test` | Run all tests |
 | `pnpm lint` | Run ESLint |
 | `pnpm typecheck` | TypeScript type checking |
 | `pnpm clean` | Clean build artifacts |
@@ -215,9 +252,15 @@ pnpm --filter @harshjudge/shared build
 ### Publishing
 
 ```bash
-cd packages/mcp-server
-npm publish
+# 1. Bump version in packages/mcp-server/package.json and server.json
+# 2. Build
+pnpm build
+
+# 3. Publish
+cd packages/mcp-server && npm publish --access public
 ```
+
+See [PUBLISHING.md](packages/mcp-server/PUBLISHING.md) for detailed workflow.
 
 ## License
 
