@@ -1,0 +1,17 @@
+{
+  "name": "harshjudge-marketplace",
+  "description": "HarshJudge plugin marketplace",
+  "plugins": [
+    {
+      "name": "harshjudge",
+      "version": "0.4.0",
+      "description": "AI-native E2E testing orchestration for Claude Code",
+      "repository": "https://github.com/HuskyDanny/HarshJudge",
+      "source": {
+        "type": "github",
+        "repo": "HuskyDanny/HarshJudge",
+        "path": "/"
+      }
+    }
+  ]
+}

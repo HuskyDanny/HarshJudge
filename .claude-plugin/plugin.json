@@ -1,22 +1,11 @@
 {
   "name": "harshjudge",
-  "version": "0.3.2",
-  "description": "AI-native E2E testing orchestration for Claude Code. Create, run, and manage end-to-end test scenarios with visual evidence capture and a live dashboard.",
+  "version": "0.4.0",
+  "description": "AI-native E2E testing orchestration for Claude Code",
   "author": {
-    "name": "Allen Pan",
-    "email": "therealjunchen@163.com",
-    "url": "https://github.com/HuskyDanny/HarshJudge"
+    "name": "Allen Pan"
   },
   "repository": "https://github.com/HuskyDanny/HarshJudge",
-  "homepage": "https://github.com/HuskyDanny/HarshJudge#readme",
   "license": "MIT",
-  "keywords": [
-    "e2e-testing",
-    "testing",
-    "automation",
-    "browser",
-    "playwright",
-    "mcp",
-    "claude-code"
-  ]
+  "keywords": ["testing", "e2e", "ai", "claude-code"]
 }
