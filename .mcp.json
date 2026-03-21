@@ -1,8 +1,0 @@
-{
-  "mcpServers": {
-    "harshjudge": {
-      "command": "npx",
-      "args": ["-y", "@allenpan2026/harshjudge-mcp@latest"]
-    }
-  }
-}

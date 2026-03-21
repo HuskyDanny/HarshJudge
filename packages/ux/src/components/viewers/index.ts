@@ -1,2 +1,0 @@
-// Viewer component exports
-export {};
