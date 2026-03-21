@@ -12,6 +12,7 @@ import { register as registerEvidence } from './commands/evidence.js';
 import { register as registerCompleteStep } from './commands/complete-step.js';
 import { register as registerCompleteRun } from './commands/complete-run.js';
 import { register as registerDashboard } from './commands/dashboard.js';
+import { register as registerDiscover } from './commands/discover.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const pkg = JSON.parse(
@@ -34,5 +35,6 @@ registerEvidence(program);
 registerCompleteStep(program);
 registerCompleteRun(program);
 registerDashboard(program);
+registerDiscover(program);
 
 program.parse();
