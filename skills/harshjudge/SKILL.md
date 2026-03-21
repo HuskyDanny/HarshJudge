@@ -5,13 +5,13 @@ description: AI-native E2E testing orchestration for Claude Code. Use when creat
 
 # HarshJudge E2E Testing
 
-AI-native E2E testing with MCP tools and visual evidence capture.
+AI-native E2E testing with CLI commands and visual evidence capture.
 
 ## Core Principles
 
 1. **Evidence First**: Screenshot before and after every action
 2. **Fail Fast**: Stop on error, report with context
-3. **Complete Runs**: Always call `completeRun`, even on failure
+3. **Complete Runs**: Always call `harshjudge complete-run`, even on failure
 4. **Step Isolation**: Each step executes in its own spawned agent for token efficiency
 5. **Knowledge Accumulation**: Learnings go to `prd.md`, not scenarios
 
@@ -22,7 +22,7 @@ HarshJudge uses a **step-based agent pattern** for token-efficient test executio
 ```
 Main Agent                    Step Agents (spawned per step)
     │
-    ├─ startRun(scenarioSlug)
+    ├─ harshjudge start <scenarioSlug>
     │      ↓
     │  Returns: runId, steps[]
     │
@@ -30,17 +30,17 @@ Main Agent                    Step Agents (spawned per step)
     │      │                                              │
     │      │ ◄─────────────────────────────────── Return: { status, evidencePaths }
     │      │
-    │   completeStep(runId, "01", status)
+    │   harshjudge complete-step <runId> --step 01 --status pass
     │      │
     ├─► Spawn Agent: Step 02 ──────────────────────► Execute actions
     │      │                                              │
     │      │ ◄─────────────────────────────────── Return: { status, evidencePaths }
     │      │
-    │   completeStep(runId, "02", status)
+    │   harshjudge complete-step <runId> --step 02 --status pass
     │      │
     │   ... (repeat for each step)
     │
-    └─ completeRun(runId, finalStatus)
+    └─ harshjudge complete-run <runId> --status pass
 ```
 
 **Benefits:**
@@ -51,13 +51,13 @@ Main Agent                    Step Agents (spawned per step)
 
 ## Workflows
 
-| Intent | Reference | Key Tools |
+| Intent | Reference | Key Commands |
 |--------|-----------|-----------|
-| Initialize project | [references/setup.md](references/setup.md) | `initProject` |
-| Create scenario | [references/create.md](references/create.md) | `createScenario` |
-| Run scenario | [references/run.md](references/run.md) | `startRun`, `completeStep`, `completeRun` |
-| Fix failed test | [references/iterate.md](references/iterate.md) | `getStatus`, `createScenario` |
-| Check status | [references/status.md](references/status.md) | `getStatus` |
+| Initialize project | [references/setup.md](references/setup.md) | `harshjudge init` |
+| Create scenario | [references/create.md](references/create.md) | `harshjudge create` |
+| Run scenario | [references/run.md](references/run.md) | `harshjudge start`, `harshjudge complete-step`, `harshjudge complete-run` |
+| Fix failed test | [references/iterate.md](references/iterate.md) | `harshjudge status`, `harshjudge create` |
+| Check status | [references/status.md](references/status.md) | `harshjudge status` |
 
 ## Project Structure
 
@@ -81,19 +81,21 @@ Main Agent                    Step Agents (spawned per step)
 
 ## Quick Reference
 
-### HarshJudge MCP Tools
+### HarshJudge CLI Commands
 
-| Tool | Purpose |
-|------|---------|
-| `initProject` | Initialize project (spawns dashboard) |
-| `createScenario` | Create/update scenario with step files |
-| `toggleStar` | Toggle/set scenario starred status |
-| `startRun` | Start test run, returns step list |
-| `recordEvidence` | Capture evidence for a step |
-| `completeStep` | Complete a step, get next step ID |
-| `completeRun` | Finalize run with status |
-| `getStatus` | Check project or scenario status |
-| `openDashboard` / `closeDashboard` | Manage dashboard server |
+| Command | Purpose |
+|---------|---------|
+| `harshjudge init <name>` | Initialize project (creates .harshJudge/) |
+| `harshjudge create <slug>` | Create/update scenario with step files |
+| `harshjudge star <slug>` | Toggle/set scenario starred status |
+| `harshjudge start <slug>` | Start test run, returns step list |
+| `harshjudge evidence <runId>` | Capture evidence for a step |
+| `harshjudge complete-step <runId>` | Complete a step, get next step ID |
+| `harshjudge complete-run <runId>` | Finalize run with status |
+| `harshjudge status [slug]` | Check project or scenario status |
+| `harshjudge discover tree [path]` | Browse .harshJudge/ structure |
+| `harshjudge discover search <pattern>` | Search file content |
+| `harshjudge dashboard open/close/status` | Manage dashboard server |
 
 ### Playwright MCP Tools
 
@@ -129,7 +131,7 @@ Status: {pass|fail|first step}
 1. Execute the actions using Playwright MCP tools
 2. Use browser_snapshot before clicking to get element refs
 3. Capture before/after screenshots using browser_take_screenshot
-4. Record evidence using recordEvidence with step={stepNumber}
+4. Record evidence: harshjudge evidence <runId> --step {stepNumber} --type screenshot --name before --data /path/to/screenshot.png
 
 Return ONLY a JSON object:
 {
@@ -145,6 +147,6 @@ DO NOT return full evidence content. DO NOT explain your work.
 
 On ANY error:
 1. **STOP** - Do not proceed
-2. **Report** - Tool, params, error, resolution
+2. **Report** - Command, params, error, resolution
 3. **Check prd.md** - Is this a known pattern?
 4. **Do NOT retry** - Unless user instructs

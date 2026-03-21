@@ -7,9 +7,9 @@ Use this workflow when user wants to:
 - Define test steps for a user flow
 - Document a test case with expected behavior
 
-## MCP Tools Used
+## CLI Commands Used
 
-- `mcp__harshjudge__createScenario` - Creates scenario with individual step files
+- `harshjudge create <slug>` — creates scenario with individual step files
 
 ## Prerequisites
 
@@ -71,13 +71,18 @@ Each step needs:
 }
 ```
 
-### Step 4: Call createScenario
+### Step 4: Run create
 
-Invoke `mcp__harshjudge__createScenario` with parameters:
+Pass scenario data as JSON via stdin or a file:
 
-```json
-{
-  "slug": "login-flow",
+```bash
+harshjudge create login-flow --title "User Login Flow" --steps-file steps.json
+```
+
+Or provide inline JSON:
+
+```bash
+harshjudge create login-flow --json '{
   "title": "User Login Flow",
   "steps": [
     {
@@ -103,27 +108,26 @@ Invoke `mcp__harshjudge__createScenario` with parameters:
   "tags": ["auth", "critical", "smoke"],
   "estimatedDuration": 60,
   "starred": false
-}
+}'
 ```
 
-### Step 5: Verify Response
+### Step 5: Verify Output
 
-The tool returns:
+The command outputs:
 
-```json
-{
-  "success": true,
-  "slug": "login-flow",
-  "scenarioPath": ".harshJudge/scenarios/login-flow",
-  "metaPath": ".harshJudge/scenarios/login-flow/meta.yaml",
-  "stepsPath": ".harshJudge/scenarios/login-flow/steps",
-  "stepFiles": [
-    "01-navigate-to-login.md",
-    "02-enter-credentials.md",
-    "03-submit-form.md"
-  ],
-  "isNew": true
-}
+```
+Scenario created: login-flow
+
+Structure:
+  .harshJudge/scenarios/login-flow/
+    meta.yaml
+    steps/
+      01-navigate-to-login.md
+      02-enter-credentials.md
+      03-submit-form.md
+
+Steps: 3
+Tags: auth, critical, smoke
 ```
 
 **On Success:** Continue to Step 6
@@ -155,7 +159,7 @@ Next steps:
 
 ## Created File Structure
 
-After `createScenario` completes:
+After `harshjudge create` completes:
 
 ```
 .harshJudge/scenarios/{slug}/
@@ -205,57 +209,8 @@ Application is running at baseUrl
 1. Navigate to /login
 2. Wait for page load
 
-**Playwright:**
-```javascript
-// Add Playwright code here when implementing
-```
-
 ## Expected Outcome
 Login form is visible
-```
-
----
-
-## Example: Complete Scenario
-
-**User Request:** "Create a test for the checkout process"
-
-**createScenario call:**
-```json
-{
-  "slug": "checkout-flow",
-  "title": "E-Commerce Checkout Flow",
-  "steps": [
-    {
-      "title": "Add item to cart",
-      "actions": "1. Navigate to product page\n2. Click 'Add to Cart' button",
-      "expectedOutcome": "Cart badge shows 1 item"
-    },
-    {
-      "title": "Go to cart",
-      "preconditions": "At least one item in cart",
-      "actions": "1. Click cart icon\n2. Wait for cart page",
-      "expectedOutcome": "Cart page shows item details and total"
-    },
-    {
-      "title": "Proceed to checkout",
-      "actions": "1. Click 'Checkout' button",
-      "expectedOutcome": "Checkout form is displayed"
-    },
-    {
-      "title": "Fill shipping info",
-      "actions": "1. Enter address\n2. Select shipping method",
-      "expectedOutcome": "Shipping info saved, proceed button enabled"
-    },
-    {
-      "title": "Complete payment",
-      "actions": "1. Enter payment details\n2. Click 'Place Order'",
-      "expectedOutcome": "Order confirmation page with order number"
-    }
-  ],
-  "tags": ["checkout", "critical", "payment"],
-  "estimatedDuration": 120
-}
 ```
 
 ---
@@ -280,21 +235,14 @@ Login form is visible
 
 To update a scenario (same slug = update):
 
-```json
-{
-  "slug": "login-flow",  // Same slug updates existing
-  "title": "User Login Flow",
-  "steps": [
-    // Updated steps array
-  ]
-}
+```bash
+harshjudge create login-flow --json '{ ... updated steps ... }'
 ```
 
 **What happens on update:**
 - Step files are overwritten with new content
 - `meta.yaml` is updated with new step references
 - Run statistics (totalRuns, passCount, etc.) are **preserved**
-- `isNew: false` is returned
 
 **When to update vs create new:**
 - **Update:** Fixing selectors, adding steps, correcting expectations

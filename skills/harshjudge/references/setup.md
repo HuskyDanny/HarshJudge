@@ -7,9 +7,9 @@ Use this workflow when user wants to:
 - Set up E2E testing infrastructure
 - Start the HarshJudge dashboard
 
-## MCP Tools Used
+## CLI Commands Used
 
-- `mcp__harshjudge__initProject` (spawns dashboard automatically)
+- `harshjudge init <projectName>` — initializes project and spawns dashboard automatically
 
 ## Assets Created
 
@@ -31,31 +31,27 @@ Optionally explore the codebase to understand:
 - Key user flows
 - Environment requirements
 
-### Step 2: Call initProject
+### Step 2: Run init
 
-Invoke `mcp__harshjudge__initProject` with parameters:
-
-```json
-{
-  "projectName": "<project-name>",
-  "baseUrl": "<base-url>"
-}
+```bash
+harshjudge init <project-name> --base-url <base-url>
 ```
 
 ### Step 3: Verify Response
 
-The tool returns:
+The command outputs:
 
-```json
-{
-  "success": true,
-  "projectPath": ".harshJudge",
-  "configPath": ".harshJudge/config.yaml",
-  "prdPath": ".harshJudge/prd.md",
-  "scenariosPath": ".harshJudge/scenarios",
-  "dashboardUrl": "http://localhost:3001",
-  "message": "HarshJudge initialized successfully"
-}
+```
+HarshJudge initialized successfully!
+
+Project: <project-name>
+Dashboard: http://localhost:3001
+
+Created:
+  .harshJudge/config.yaml
+  .harshJudge/prd.md
+  .harshJudge/scenarios/
+  .harshJudge/.gitignore
 ```
 
 **On Success:** Continue to Step 4
@@ -99,7 +95,7 @@ After successful setup:
   config.yaml         # Project configuration
   prd.md              # Product requirements document
   scenarios/          # Empty, ready for test scenarios
-    {slug}/           # Created by createScenario
+    {slug}/           # Created by harshjudge create
       meta.yaml       # Scenario definition + stats
       steps/          # Individual step files
         01-step.md

@@ -8,11 +8,14 @@ Use this workflow when user wants to:
 - See run history for a scenario
 - Get summary of test results
 - Filter starred scenarios
+- Browse the .harshJudge/ directory structure
 
-## MCP Tools Used
+## CLI Commands Used
 
-- `mcp__harshjudge__getStatus`
-- `mcp__harshjudge__toggleStar` (optional: to mark favorites)
+- `harshjudge status` — project-wide or per-scenario status
+- `harshjudge discover tree [path]` — browse directory structure
+- `harshjudge discover search <pattern>` — search file content
+- `harshjudge star <slug>` — mark/unmark as favorite
 
 ## Prerequisites
 
@@ -22,52 +25,11 @@ Use this workflow when user wants to:
 
 ### Option A: Project-Wide Status
 
-Get status of all scenarios in the project.
-
-#### Step 1: Call getStatus (no parameters)
-
-```json
-// mcp__harshjudge__getStatus
-{}
+```bash
+harshjudge status
 ```
 
-#### Step 2: Process Response
-
-```json
-{
-  "success": true,
-  "project": {
-    "name": "my-app",
-    "baseUrl": "http://localhost:3000",
-    "initialized": "2024-01-15T10:00:00Z"
-  },
-  "scenarios": [
-    {
-      "slug": "login-flow",
-      "title": "User Login Flow",
-      "tags": ["auth", "critical"],
-      "starred": true,
-      "lastRun": {
-        "status": "pass",
-        "timestamp": "2024-01-15T12:30:00Z",
-        "duration": 15234
-      },
-      "stats": {
-        "totalRuns": 10,
-        "passed": 8,
-        "failed": 2,
-        "passRate": 80
-      }
-    }
-  ],
-  "dashboardUrl": "http://localhost:3001"
-}
-```
-
-#### Step 3: Present Summary
-
-Format as readable table:
-
+**Output:**
 ```
 HarshJudge Project Status
 
@@ -87,87 +49,34 @@ Tags: auth (1), critical (1), cart (1), payment (1)
 
 ### Option B: Specific Scenario Status
 
-Get detailed status for a single scenario.
-
-#### Step 1: Call getStatus with scenarioSlug
-
-```json
-// mcp__harshjudge__getStatus
-{
-  "scenarioSlug": "login-flow"
-}
+```bash
+harshjudge status login-flow
 ```
 
-#### Step 2: Process Response
+**Output includes:**
+- Scenario metadata (slug, title, tags, starred)
+- Step list with filenames
+- Run statistics (totalRuns, passed, failed, passRate, avgDuration)
+- Recent run history with status and duration
+- Last failure details (step, error, evidence path)
 
-```json
-{
-  "success": true,
-  "scenario": {
-    "slug": "login-flow",
-    "title": "User Login Flow",
-    "tags": ["auth", "critical"],
-    "starred": true,
-    "steps": [
-      { "id": "01", "title": "Navigate to login", "file": "01-navigate-to-login.md" },
-      { "id": "02", "title": "Enter credentials", "file": "02-enter-credentials.md" },
-      { "id": "03", "title": "Submit form", "file": "03-submit-form.md" }
-    ],
-    "estimatedDuration": 30,
-    "stats": {
-      "totalRuns": 10,
-      "passed": 8,
-      "failed": 2,
-      "passRate": 80,
-      "avgDuration": 14500
-    },
-    "recentRuns": [
-      {
-        "runId": "run_abc123",
-        "status": "pass",
-        "timestamp": "2024-01-15T12:30:00Z",
-        "duration": 15234
-      }
-    ]
-  },
-  "dashboardUrl": "http://localhost:3001/scenarios/login-flow"
-}
+### Option C: Browse Directory Structure
+
+```bash
+harshjudge discover tree
+harshjudge discover tree .harshJudge/scenarios/login-flow
 ```
 
-#### Step 3: Present Detailed Status
+Useful for finding evidence files, exploring run history, or confirming file layout.
 
+### Option D: Search File Content
+
+```bash
+harshjudge discover search "error"
+harshjudge discover search "data-testid"
 ```
-Scenario Status: User Login Flow ⭐
 
-Slug: login-flow
-Tags: auth, critical
-Starred: Yes
-Steps: 3
-
-Step Files:
-  01. Navigate to login (01-navigate-to-login.md)
-  02. Enter credentials (02-enter-credentials.md)
-  03. Submit form (03-submit-form.md)
-
-Statistics:
-- Total Runs: 10
-- Passed: 8 (80%)
-- Failed: 2 (20%)
-- Avg Duration: 14.5s
-
-Recent Runs:
-| Run ID | Status | Duration | Time |
-|--------|--------|----------|------|
-| run_abc123 | Pass | 15.2s | 2h ago |
-| run_xyz789 | Fail | 8.5s | 3.5h ago |
-
-Last Failure:
-- Step 03: Expected dashboard but got error page
-- Run: run_xyz789
-- Evidence: .harshJudge/scenarios/login-flow/runs/run_xyz789/step-03/evidence/
-
-View details: http://localhost:3001/scenarios/login-flow
-```
+Searches within `.harshJudge/` — useful for finding known patterns in step files or prd.md.
 
 ---
 
@@ -175,27 +84,10 @@ View details: http://localhost:3001/scenarios/login-flow
 
 Mark a scenario as starred (favorite) for quick filtering:
 
-```json
-// mcp__harshjudge__toggleStar
-{
-  "scenarioSlug": "login-flow"
-}
-// Toggles current state
-
-// Or set explicitly:
-{
-  "scenarioSlug": "login-flow",
-  "starred": true
-}
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "slug": "login-flow",
-  "starred": true
-}
+```bash
+harshjudge star login-flow          # toggle current state
+harshjudge star login-flow --on     # explicitly star
+harshjudge star login-flow --off    # explicitly unstar
 ```
 
 ---
@@ -210,18 +102,15 @@ Mark a scenario as starred (favorite) for quick filtering:
 
 **On Error:**
 1. **STOP immediately**
-2. Report error:
-   ```
-   Failed to get status:
-   - Error: {error.message}
+2. Report error with context
+3. Suggest resolution based on error type
 
-   Suggested resolution: {based on error type}
-   ```
+---
 
 ## Status Indicators
 
-| Icon | Status | Meaning |
-|------|--------|---------|
+| Icon | Meaning |
+|------|---------|
 | Pass | All steps completed successfully |
 | Fail | One or more steps failed |
 | N/A | Never run |
@@ -236,7 +125,7 @@ Based on status, suggest next actions:
 
 **If recent failures:**
 > "The login-flow scenario failed at step 03. Would you like to investigate or re-run it?"
-> Reference: Use iterate workflow to analyze failures
+> Reference: Use [[iterate]] workflow to analyze failures
 
 **If no scenarios:**
 > "No test scenarios found. Would you like to create one?"
