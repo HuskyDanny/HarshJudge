@@ -11,7 +11,7 @@
  */
 
 // Import from the actual file path since tsup doesn't resolve subpath exports
-import { DashboardServer } from '../../packages/ux/src/server/DashboardServer.js';
+import { DashboardServer } from '../ux/server/DashboardServer.js';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 
@@ -40,7 +40,9 @@ async function main(): Promise<void> {
 
   try {
     const actualPort = await server.start();
-    console.log(`[HarshJudge Worker] Dashboard running at http://localhost:${actualPort}`);
+    console.log(
+      `[HarshJudge Worker] Dashboard running at http://localhost:${actualPort}`
+    );
 
     // Keep the process alive
     process.on('SIGTERM', async () => {
