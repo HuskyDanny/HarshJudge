@@ -1,5 +1,5 @@
 import { defineConfig } from 'tsup';
-import { cpSync } from 'fs';
+import { cpSync, existsSync } from 'fs';
 
 export default defineConfig({
   entry: {
@@ -12,7 +12,13 @@ export default defineConfig({
   sourcemap: true,
   splitting: false,
   onSuccess: async () => {
-    cpSync('dist-ux', 'dist/ux-dist', { recursive: true });
-    console.log('✓ Copied UX dist files to dist/ux-dist');
+    if (existsSync('dist-ux')) {
+      cpSync('dist-ux', 'dist/ux-dist', { recursive: true });
+      console.log('✓ Copied UX dist files to dist/ux-dist');
+    } else {
+      console.log(
+        '⚠ dist-ux not found — run "pnpm build:ux" first for dashboard support'
+      );
+    }
   },
 });
