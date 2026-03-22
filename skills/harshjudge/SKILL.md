@@ -7,6 +7,17 @@ description: AI-native E2E testing orchestration for Claude Code. Use when creat
 
 AI-native E2E testing with CLI commands and visual evidence capture.
 
+## CLI Setup
+
+All `harshjudge` commands below should be invoked via:
+```bash
+npx @allenpan2026/harshjudge@latest <command>
+```
+The first call downloads and caches the CLI. Subsequent calls are instant. For convenience, set an alias at the start of each session:
+```bash
+alias harshjudge="npx @allenpan2026/harshjudge@latest"
+```
+
 ## Core Principles
 
 1. **Evidence First**: Screenshot before and after every action

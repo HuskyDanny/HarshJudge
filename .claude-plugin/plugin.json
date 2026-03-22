@@ -1,6 +1,6 @@
 {
   "name": "harshjudge",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "AI-native E2E testing orchestration for Claude Code",
   "author": {
     "name": "Allen Pan"
