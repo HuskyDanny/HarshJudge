@@ -1,6 +1,6 @@
 {
   "name": "@allenpan2026/harshjudge",
-  "version": "0.4.3",
+  "version": "0.4.4",
   "description": "AI-native E2E testing orchestration CLI for Claude Code.",
   "type": "module",
   "main": "./dist/index.js",
