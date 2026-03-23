@@ -3,7 +3,6 @@ import {
   type CompleteRunResult,
   type ScenarioStats,
   type StepResult,
-  DEFAULT_SCENARIO_STATS,
 } from '../types/index.js';
 import { FileSystemService } from '../services/file-system-service.js';
 
@@ -82,7 +81,7 @@ function extractScenarioSlug(runPath: string): string {
   const parts = runPath.split('/');
   const scenariosIdx = parts.indexOf('scenarios');
   if (scenariosIdx >= 0 && parts.length > scenariosIdx + 1) {
-    return parts[scenariosIdx + 1];
+    return parts[scenariosIdx + 1] ?? 'unknown';
   }
   return 'unknown';
 }
@@ -116,7 +115,9 @@ export async function handleCompleteRun(
   let existingResult: { status: string; steps?: unknown[] } | null = null;
 
   if (await fs.exists(resultPath)) {
-    existingResult = await fs.readJson<{ status: string; steps?: unknown[] }>(resultPath);
+    existingResult = await fs.readJson<{ status: string; steps?: unknown[] }>(
+      resultPath
+    );
     // Only reject if the run is truly completed (not "running" from completeStep)
     if (existingResult.status !== 'running') {
       throw new Error(`Run "${validated.runId}" is already completed.`);
@@ -129,7 +130,11 @@ export async function handleCompleteRun(
   if (validated.steps && validated.steps.length > 0) {
     // Use provided steps (v2 format from params)
     steps = validated.steps;
-  } else if (existingResult?.steps && Array.isArray(existingResult.steps) && existingResult.steps.length > 0) {
+  } else if (
+    existingResult?.steps &&
+    Array.isArray(existingResult.steps) &&
+    existingResult.steps.length > 0
+  ) {
     // Use steps from in-progress result.json (from completeStep calls)
     steps = existingResult.steps as StepResult[];
   } else {
@@ -137,10 +142,17 @@ export async function handleCompleteRun(
     const stepEvidence = await collectStepEvidence(fs, runPath);
     steps = stepEvidence.map((se) => ({
       id: se.stepId,
-      status: (validated.failedStep === se.stepId ? 'fail' : 'pass') as 'pass' | 'fail' | 'skipped',
+      status: (validated.failedStep === se.stepId ? 'fail' : 'pass') as
+        | 'pass'
+        | 'fail'
+        | 'skipped',
       duration: 0, // Unknown for v1 compat
-      error: validated.failedStep === se.stepId ? (validated.errorMessage ?? null) : null,
+      error:
+        validated.failedStep === se.stepId
+          ? (validated.errorMessage ?? null)
+          : null,
       evidenceFiles: se.evidenceFiles,
+      summary: null,
     }));
   }
 
@@ -161,12 +173,28 @@ export async function handleCompleteRun(
     }
   }
 
-  // 7. Write result.json (v2 format)
+  // 7. Derive status from step results (override --status if contradicted by steps)
+  let effectiveStatus: 'pass' | 'fail' = validated.status;
+  let warning: string | undefined;
+
+  if (steps.length > 0) {
+    const anyFailed = steps.some((s) => s.status === 'fail');
+    const derivedStatus: 'pass' | 'fail' = anyFailed ? 'fail' : 'pass';
+
+    if (derivedStatus !== validated.status) {
+      warning =
+        `Status mismatch: --status "${validated.status}" contradicts step results ` +
+        `(derived: "${derivedStatus}"). Using derived status.`;
+      effectiveStatus = derivedStatus;
+    }
+  }
+
+  // 8. Write result.json (v2 format)
   const scenarioSlug = extractScenarioSlug(runPath);
   const result = {
     runId: validated.runId,
     scenarioSlug,
-    status: validated.status,
+    status: effectiveStatus,
     startedAt: startedAt ?? new Date().toISOString(),
     completedAt: new Date().toISOString(),
     duration: validated.duration,
@@ -176,7 +204,7 @@ export async function handleCompleteRun(
   };
   await fs.writeJson(resultPath, result);
 
-  // 8. Update scenario meta.yaml (preserve all fields, update stats only)
+  // 9. Update scenario meta.yaml (preserve all fields, update stats only)
   const metaPath = `${scenarioPath}/${META_FILE}`;
 
   // Read entire meta.yaml to preserve all fields (title, slug, starred, tags, steps, etc.)
@@ -187,21 +215,24 @@ export async function handleCompleteRun(
 
   // Extract current stats with defaults
   const currentStats: ScenarioStats = {
-    totalRuns: (existingMeta.totalRuns as number) ?? 0,
-    passCount: (existingMeta.passCount as number) ?? 0,
-    failCount: (existingMeta.failCount as number) ?? 0,
-    lastRun: (existingMeta.lastRun as string | null) ?? null,
-    lastResult: (existingMeta.lastResult as 'pass' | 'fail' | null) ?? null,
-    avgDuration: (existingMeta.avgDuration as number) ?? 0,
+    totalRuns: (existingMeta['totalRuns'] as number) ?? 0,
+    passCount: (existingMeta['passCount'] as number) ?? 0,
+    failCount: (existingMeta['failCount'] as number) ?? 0,
+    lastRun: (existingMeta['lastRun'] as string | null) ?? null,
+    lastResult: (existingMeta['lastResult'] as 'pass' | 'fail' | null) ?? null,
+    avgDuration: (existingMeta['avgDuration'] as number) ?? 0,
   };
 
-  // Update statistics
+  // Update statistics using derived (effective) status
   const newTotalRuns = currentStats.totalRuns + 1;
-  const newPassCount = currentStats.passCount + (validated.status === 'pass' ? 1 : 0);
-  const newFailCount = currentStats.failCount + (validated.status === 'fail' ? 1 : 0);
+  const newPassCount =
+    currentStats.passCount + (effectiveStatus === 'pass' ? 1 : 0);
+  const newFailCount =
+    currentStats.failCount + (effectiveStatus === 'fail' ? 1 : 0);
 
   // Calculate new average duration
-  const totalDuration = currentStats.avgDuration * currentStats.totalRuns + validated.duration;
+  const totalDuration =
+    currentStats.avgDuration * currentStats.totalRuns + validated.duration;
   const newAvgDuration = Math.round(totalDuration / newTotalRuns);
 
   // Merge updated stats back into existing meta (preserve all other fields)
@@ -211,13 +242,13 @@ export async function handleCompleteRun(
     passCount: newPassCount,
     failCount: newFailCount,
     lastRun: new Date().toISOString(),
-    lastResult: validated.status,
+    lastResult: effectiveStatus,
     avgDuration: newAvgDuration,
   };
 
   await fs.writeYaml(metaPath, updatedMeta);
 
-  // 9. Return result
+  // 10. Return result
   return {
     success: true,
     resultPath,
@@ -227,5 +258,6 @@ export async function handleCompleteRun(
       failCount: newFailCount,
       avgDuration: newAvgDuration,
     },
+    ...(warning !== undefined ? { warning } : {}),
   };
 }

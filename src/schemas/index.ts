@@ -182,6 +182,8 @@ export interface CompleteRunResult {
     failCount: number;
     avgDuration: number;
   };
+  /** Present when --status contradicts the derived status from step results */
+  warning?: string;
 }
 
 // ============================================================
