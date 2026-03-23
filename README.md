@@ -34,7 +34,10 @@ harshjudge init my-app
 
 - **Node.js**: 18+ LTS
 - **Claude Code**: Latest version
-- **Playwright MCP Server**: For browser automation (screenshots, navigation, clicks)
+- **A browser automation tool** (any one of):
+  - Playwright MCP (default, most common)
+  - browser-use MCP (token efficient alternative)
+  - Chrome DevTools MCP
 
 ## Installation
 

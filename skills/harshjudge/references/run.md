@@ -15,7 +15,7 @@ Use this workflow when user wants to:
 3. `harshjudge complete-step <runId>` — Complete each step, get next step
 4. `harshjudge complete-run <runId>` — Finalize with pass/fail status
 
-See [[run-playwright]] for Playwright tool reference.
+See [[run-browser]] for browser tool reference (Playwright MCP, browser-use, Chrome DevTools).
 
 > **TOKEN OPTIMIZATION**: Each step executes in its own spawned agent. This isolates context and prevents token accumulation.
 

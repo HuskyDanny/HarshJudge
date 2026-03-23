@@ -20,8 +20,8 @@ Status: {pass|fail|first step}
 ## Your Task
 1. Navigate to the base URL if not already there
 2. Execute the actions described in the step content
-3. Use browser_snapshot before clicking to get element refs
-4. Capture before/after screenshots using browser_take_screenshot
+3. Use the available browser tool to inspect the page before interacting
+4. Take before/after screenshots using the browser tool
 5. Record evidence:
    harshjudge evidence {runId} --step {stepNumber} --type screenshot --name before --data /path/to/screenshot.png
 6. Verify the expected outcome
