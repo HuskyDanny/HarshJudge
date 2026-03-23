@@ -15,7 +15,7 @@
     "LICENSE"
   ],
   "scripts": {
-    "build": "tsup && vite build",
+    "build": "vite build && tsup",
     "build:cli": "tsup",
     "build:ux": "vite build",
     "dev": "tsup --watch",
