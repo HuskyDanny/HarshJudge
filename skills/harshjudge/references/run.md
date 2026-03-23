@@ -110,6 +110,31 @@ Saved to: `.harshJudge/scenarios/{slug}/runs/{runId}/step-01/evidence/`
 
 Evidence types: `screenshot`, `console_log`, `network_log`, `html_snapshot`.
 
+## Step Tracking (MANDATORY)
+
+> [!warning] Never skip steps
+> Before calling `complete-run`, verify EVERY step has been executed or explicitly skipped.
+
+After `harshjudge start` returns the step list, create a checklist and track each step:
+
+```
+Steps for run {runId}:
+- [ ] 01 — {title} → pending
+- [ ] 02 — {title} → pending
+- [ ] 03 — {title} → pending
+```
+
+Update after each `complete-step`:
+```
+- [x] 01 — Navigate to login → pass (1200ms)
+- [x] 02 — Fill credentials → pass (800ms)
+- [ ] 03 — Verify dashboard → pending
+```
+
+**Before calling `complete-run`:** Count completed steps vs total steps. If any step is still `pending` and not explicitly failed/skipped, DO NOT finalize — execute the missing step first.
+
+**If a step agent crashes** without returning a result, mark it as `fail` via `complete-step` with `--error "Agent did not return result"`, then continue to the next step or finalize.
+
 ## Error Handling
 
 | Error | Action |
