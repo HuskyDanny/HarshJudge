@@ -108,18 +108,27 @@ Main Agent                    Step Agents (spawned per step)
 | `harshjudge discover search <pattern>` | Search file content |
 | `harshjudge dashboard open/close/status` | Manage dashboard server |
 
-### Playwright MCP Tools
+### Browser Automation (Auto-Detect)
 
-| Tool | Purpose |
-|------|---------|
-| `browser_navigate` | Navigate to URL |
-| `browser_snapshot` | Get accessibility tree (use before click/type) |
-| `browser_click` | Click element using ref |
-| `browser_type` | Type into input using ref |
-| `browser_take_screenshot` | Capture screenshot for evidence |
-| `browser_console_messages` | Get console logs |
-| `browser_network_requests` | Get network activity |
-| `browser_wait_for` | Wait for text/condition |
+Before running a scenario, detect which browser tool is available by checking for these tools in order:
+
+1. **Playwright MCP** — look for `browser_navigate` tool
+2. **browser-use** — look for `browser_use` tool or `browser-use` CLI
+3. **cmux-browser** — look for cmux browser surfaces
+
+Use whichever is found first. The step agent needs these actions:
+
+| Action | What to do |
+|--------|-----------|
+| Navigate | Go to a URL |
+| Inspect | Get page state before interacting |
+| Click | Click element by text/role/ref |
+| Type | Enter text into input |
+| Screenshot | Capture page as image file |
+| Wait | Wait for text/element/timeout |
+| Console | Read browser console output |
+
+See [run-browser.md](references/run-browser.md) for tool-specific syntax.
 
 ## Step Agent Prompt Template
 
@@ -139,9 +148,9 @@ Auth: {from prd.md if needed}
 Status: {pass|fail|first step}
 
 ## Your Task
-1. Execute the actions using Playwright MCP tools
-2. Use browser_snapshot before clicking to get element refs
-3. Capture before/after screenshots using browser_take_screenshot
+1. Execute the actions using the available browser tool
+2. Inspect the page before clicking or typing
+3. Capture before/after screenshots
 4. Record evidence: harshjudge evidence <runId> --step {stepNumber} --type screenshot --name before --data /path/to/screenshot.png
 
 Return ONLY a JSON object:
