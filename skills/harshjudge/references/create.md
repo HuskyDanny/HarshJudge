@@ -28,7 +28,7 @@ Read .harshJudge/prd.md
 
 Check for:
 - Existing user flows to test
-- Known UI patterns and selectors
+- Known patterns, endpoints, and commands
 - Timing considerations
 - Environment requirements
 - Test credentials
@@ -52,6 +52,7 @@ Each step needs:
 
 ```typescript
 {
+  type: "frontend" | "backend" | "cli",  // Step execution mode (optional, inferred if omitted)
   title: string,           // Step title (becomes filename)
   description?: string,    // What this step does
   preconditions?: string,  // Required state before step
@@ -60,14 +61,39 @@ Each step needs:
 }
 ```
 
-**Example step:**
+**Example step (frontend):**
 ```json
 {
+  "type": "frontend",
   "title": "Navigate to login",
   "description": "Open the application login page",
   "preconditions": "Application is running at baseUrl",
   "actions": "1. Navigate to /login\n2. Wait for page to load",
   "expectedOutcome": "Login form is visible with email and password fields"
+}
+```
+
+**Example step (backend):**
+```json
+{
+  "type": "backend",
+  "title": "Create user via API",
+  "description": "POST to /api/users and verify 201 response",
+  "preconditions": "Server is running at baseUrl",
+  "actions": "1. POST /api/users with {name: 'test', email: 'test@example.com'}\n2. Capture response body and status code",
+  "expectedOutcome": "Response status 201, body contains user id"
+}
+```
+
+**Example step (cli):**
+```json
+{
+  "type": "cli",
+  "title": "Generate config file",
+  "description": "Run the generate command and verify output",
+  "preconditions": "Tool is installed and on PATH",
+  "actions": "1. Run my-tool generate --config prod\n2. Capture stdout and exit code",
+  "expectedOutcome": "Exit code 0, stdout contains 'Generated successfully'"
 }
 ```
 
@@ -197,6 +223,10 @@ avgDuration: 0
 
 **Step file format (01-navigate-to-login.md):**
 ```markdown
+---
+type: frontend
+---
+
 # Step 01: Navigate to login
 
 ## Description

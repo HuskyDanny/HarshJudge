@@ -1,11 +1,11 @@
 ---
 name: harshjudge
-description: AI-native E2E testing orchestration for Claude Code. Use when creating, running, or managing end-to-end test scenarios with visual evidence capture. Activates for tasks involving E2E tests, browser automation testing, test scenario creation, test execution with screenshots, or checking test status.
+description: E2E testing orchestration for Claude Code. Use when creating, running, or managing end-to-end test scenarios — frontend (browser), backend (API), or CLI. Activates for tasks involving E2E tests, test scenario creation, test execution with evidence capture, or checking test status.
 ---
 
 # HarshJudge E2E Testing
 
-AI-native E2E testing with CLI commands and visual evidence capture.
+AI-native E2E testing with CLI commands and evidence capture.
 
 ## CLI Setup
 
@@ -20,7 +20,7 @@ alias harshjudge="npx @allenpan2026/harshjudge@latest"
 
 ## Core Principles
 
-1. **Evidence First**: Screenshot before and after every action
+1. **Evidence First**: Capture evidence appropriate to the step type — screenshots for frontend, response bodies for API, stdout for CLI
 2. **Fail Fast**: Stop on error, report with context
 3. **Complete Runs**: Always call `harshjudge complete-run`, even on failure
 4. **Step Isolation**: Each step executes in its own spawned agent for token efficiency
@@ -108,27 +108,19 @@ Main Agent                    Step Agents (spawned per step)
 | `harshjudge discover search <pattern>` | Search file content |
 | `harshjudge dashboard open/close/status` | Manage dashboard server |
 
-### Browser Automation (Auto-Detect)
+### Step Types
 
-Before running a scenario, detect which browser tool is available by checking for these tools in order:
+Each step declares its execution mode via `type` in the step file frontmatter:
 
-1. **Playwright MCP** — look for `browser_navigate` tool
-2. **browser-use** — look for `browser_use` tool or `browser-use` CLI
-3. **cmux-browser** — look for cmux browser surfaces
+| Type | Tools | Evidence Captured |
+|------|-------|-------------------|
+| `frontend` | Browser tool (auto-detected) | screenshot, console_log, network_log, html_snapshot |
+| `backend` | Bash (curl/httpie) | api_response, api_headers, db_snapshot |
+| `cli` | Bash | stdout, stderr, exit_code |
 
-Use whichever is found first. The step agent needs these actions:
+If `type` is omitted, the step agent infers from the step content.
 
-| Action | What to do |
-|--------|-----------|
-| Navigate | Go to a URL |
-| Inspect | Get page state before interacting |
-| Click | Click element by text/role/ref |
-| Type | Enter text into input |
-| Screenshot | Capture page as image file |
-| Wait | Wait for text/element/timeout |
-| Console | Read browser console output |
-
-See [run-browser.md](references/run-browser.md) for tool-specific syntax.
+See [run-tools.md](references/run-tools.md) for tool-specific guidance per type.
 
 ## Step Agent Prompt Template
 
@@ -140,24 +132,31 @@ Execute step {stepId} of scenario {scenarioSlug}:
 ## Step Content
 {content from steps/{stepId}-{slug}.md}
 
+## Step Type
+{type from step frontmatter, or infer from content: frontend|backend|cli}
+
 ## Project Context
 Base URL: {from config.yaml}
-Auth: {from prd.md if needed}
+Services: {from prd.md — list of services under test}
 
 ## Previous Step
 Status: {pass|fail|first step}
 
 ## Your Task
-1. Execute the actions using the available browser tool
-2. Inspect the page before clicking or typing
-3. Capture before/after screenshots
-4. Record evidence: harshjudge evidence <runId> --step {stepNumber} --type screenshot --name before --data /path/to/screenshot.png
+1. Read the step type from frontmatter (frontend/backend/cli)
+2. Execute the actions using the appropriate tool:
+   - frontend: use available browser tool
+   - backend: use curl/httpie via Bash
+   - cli: run commands via Bash
+3. Capture evidence appropriate to the step type
+4. Record evidence: harshjudge evidence <runId> --step {stepNumber} --type <evidence_type> --name <name> --data <path_or_data>
 
 Return ONLY a JSON object:
 {
   "status": "pass" | "fail",
-  "evidencePaths": ["path1.png", "path2.png"],
-  "error": null | "error message"
+  "evidencePaths": ["path1", "path2"],
+  "error": null | "error message",
+  "summary": "Brief description of what happened and result (1-2 sentences)"
 }
 
 DO NOT return full evidence content. DO NOT explain your work.

@@ -1,15 +1,14 @@
 # Project PRD
 
 ## Application Type
-<!-- backend | fullstack | frontend | other -->
+<!-- backend | fullstack | frontend | cli | other -->
 {app_type}
 
-## Ports
-| Service | Port |
-|---------|------|
-| Frontend | {frontend_port} |
-| Backend | {backend_port} |
-| Database | {database_port} |
+## Services Under Test
+
+| Service | Type | Endpoint/Command |
+|---------|------|-----------------|
+| {service_name} | frontend/backend/cli | {url or command} |
 
 ## Main Scenarios
 <!-- High-level list of main testing scenarios -->
@@ -26,9 +25,9 @@
 
 ## Tech Stack
 <!-- Frameworks, libraries, tools -->
-- Frontend: {frontend_stack}
-- Backend: {backend_stack}
-- Testing: {testing_tools}
+- {stack_item_1}
+- {stack_item_2}
+- {stack_item_3}
 
 ## Notes
 <!-- Additional context for test scenarios -->
