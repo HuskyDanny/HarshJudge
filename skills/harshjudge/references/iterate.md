@@ -13,13 +13,12 @@ Use this workflow when:
 - `harshjudge status <slug>` — review failed run evidence
 - `harshjudge create <slug>` — update scenario with step files
 - `harshjudge start` + `harshjudge complete-step` + `harshjudge complete-run` — re-run test
-- Playwright tools for browser automation
 
 ## Core Philosophy: Learn from Failures
 
 **Failed runs are valuable data, not waste.** Each failed run provides:
-1. Screenshots showing what actually happened (in `step-XX/evidence/`)
-2. Logs revealing backend behavior
+1. Step evidence showing what actually happened (in `step-XX/evidence/`)
+2. Logs, responses, and output revealing actual behavior
 3. Evidence of gaps between expectation and reality
 
 **Goal:** Use evidence to iterate toward a scenario that accurately tests the intended behavior, and **accumulate learnings** in `prd.md`.
@@ -42,7 +41,7 @@ Navigate to the failed run's evidence directories:
 .harshJudge/scenarios/{slug}/runs/{runId}/
 ```
 
-Read `result.json` for per-step details. View screenshots in `step-XX/evidence/`.
+Read `result.json` for per-step details. Review step evidence (screenshots, responses, output) in `step-XX/evidence/`.
 
 ### Step 3: Review the Dashboard
 
@@ -52,14 +51,22 @@ harshjudge dashboard open
 
 Open `http://localhost:3001` → Scenario → Failed Run.
 
-Examine: before/after screenshots, console logs, network logs.
+Examine: step evidence (screenshots, responses, output), console logs, network logs.
 
 ### Step 4: Classify the Failure
 
 | Failure Type | Description | Action | Document In |
 |-------------|-------------|--------|-------------|
-| **Selector Broken** | UI changed, selectors outdated | Edit step file | prd.md (selector notes) |
-| **Timing Issue** | Action too fast, element not ready | Add wait to step | prd.md (timing patterns) |
+| **Frontend: Element not found** | UI changed, element missing or relocated | Edit step file with updated actions | prd.md (UI patterns) |
+| **Frontend: Page didn't load** | Navigation failed or timed out | Add wait, check URL | prd.md (timing patterns) |
+| **Frontend: Visual mismatch** | Page state differs from expectation | Update expected outcome | — |
+| **Backend: Status code mismatch** | API returned unexpected status | Update step or fix app | prd.md (known behaviors) |
+| **Backend: Response schema drift** | Response shape changed | Update expected outcome | prd.md (schema notes) |
+| **Backend: Timeout** | Request took too long | Add timeout, check service | prd.md (env setup) |
+| **CLI: Non-zero exit code** | Command failed unexpectedly | Check stderr, update step | prd.md (known errors) |
+| **CLI: Missing output** | Expected text absent from stdout | Update expected outcome | — |
+| **CLI: Unexpected stderr** | Warnings or errors in stderr | Investigate root cause | prd.md (known bugs) |
+| **Timing Issue** | Action too fast, resource not ready | Add wait to step | prd.md (timing patterns) |
 | **Step Mismatch** | Step describes wrong flow | Edit step file | — |
 | **Missing Step** | Need additional step | Add step, update scenario | — |
 | **App Bug** | Application has actual bug | Mark as known-fail | prd.md (known bugs) |
@@ -102,10 +109,10 @@ Follow [[run]] workflow:
 **Root Cause:** Email input selector changed from `.email-input` to `[data-testid="email"]`
 
 **Changes Made:**
-- Updated step-02 Playwright selectors to use data-testid attributes
+- Updated step-02 actions to match the new API response schema
 
 **Learning:**
-- Always prefer data-testid selectors over class names
+- Always verify response schema against live API, not just status code
 ```
 
 ### Step 8: Report Iteration Result
@@ -117,17 +124,17 @@ Previous Run: {runId} (FAIL at step 02)
 New Run: {newRunId} (PASS)
 
 Changes:
-- Updated step-02 selectors to use data-testid
+- Updated step-02 expected outcome to match new API response schema
 
 Learnings recorded in prd.md:
-- Selector convention: prefer data-testid attributes
+- API response schema: always check body structure, not just status code
 ```
 
 ---
 
 ## Best Practices
 
-1. **Review step evidence first** — before changing anything, examine before/after screenshots
+1. **Review step evidence first** — before changing anything, examine step evidence (screenshots, responses, output)
 2. **Edit individual steps when possible** — for small fixes, edit the `.md` file directly
 3. **Use create for major changes** — when adding/removing steps or reorganizing
 4. **Document learnings in prd.md** — after each successful iteration

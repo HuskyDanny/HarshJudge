@@ -10,27 +10,39 @@ Execute step {stepId} of scenario {scenarioSlug}:
 ## Step Content
 {paste content from steps/{step.file}}
 
+## Step Type
+{type from step frontmatter, or infer from content: frontend|backend|cli}
+
 ## Project Context
 Base URL: {from config.yaml}
-Auth: {from prd.md if this step involves login}
+Services: {from prd.md — list of services under test}
 
 ## Previous Step
 Status: {pass|fail|first step}
 
 ## Your Task
-1. Navigate to the base URL if not already there
-2. Execute the actions described in the step content
-3. Use the available browser tool to inspect the page before interacting
-4. Take before/after screenshots using the browser tool
-5. Record evidence:
-   harshjudge evidence {runId} --step {stepNumber} --type screenshot --name before --data /path/to/screenshot.png
-6. Verify the expected outcome
-7. Write a summary describing what happened and whether expected outcome matched
+Based on step type:
 
-Return ONLY a JSON object:
+**frontend:**
+1. Use the available browser tool to navigate and interact
+2. Inspect the page before clicking or typing
+3. Take before/after screenshots
+4. Record evidence: harshjudge evidence {runId} --step {stepNumber} --type screenshot --name before --data /path/to/screenshot.png
+
+**backend:**
+1. Execute HTTP requests using curl or httpie via Bash
+2. Capture the full response (status, headers, body)
+3. Record evidence: harshjudge evidence {runId} --step {stepNumber} --type api_response --name response --data /path/to/response.json
+
+**cli:**
+1. Run the specified commands via Bash
+2. Capture stdout and stderr
+3. Record evidence: harshjudge evidence {runId} --step {stepNumber} --type stdout --name output --data /path/to/output.txt
+
+Then verify the expected outcome and return ONLY a JSON object:
 {
   "status": "pass" | "fail",
-  "evidencePaths": ["path1.png", "path2.png"],
+  "evidencePaths": ["path1", "path2"],
   "error": null | "error message",
   "summary": "Brief description of what happened and result (1-2 sentences)"
 }
@@ -57,7 +69,7 @@ Task tool with:
   "status": "pass",
   "evidencePaths": [
     ".harshJudge/scenarios/login-flow/runs/abc123xyz/step-01/evidence/before.png",
-    ".harshJudge/scenarios/login-flow/runs/abc123xyz/step-01/evidence/after.png"
+    ".harshJudge/scenarios/login-flow/runs/abc123xyz/step-01/evidence/response.json"
   ],
   "error": null,
   "summary": "Login form loaded successfully. Email and password fields visible."

@@ -15,7 +15,7 @@ Use this workflow when user wants to:
 3. `harshjudge complete-step <runId>` — Complete each step, get next step
 4. `harshjudge complete-run <runId>` — Finalize with pass/fail status
 
-See [[run-browser]] for browser tool reference (Playwright MCP, browser-use, Chrome DevTools).
+See [[run-tools]] for tool reference by step type (frontend, backend, CLI).
 
 > **TOKEN OPTIMIZATION**: Each step executes in its own spawned agent. This isolates context and prevents token accumulation.
 
@@ -108,7 +108,7 @@ harshjudge evidence <runId> \
 
 Saved to: `.harshJudge/scenarios/{slug}/runs/{runId}/step-01/evidence/`
 
-Evidence types: `screenshot`, `console_log`, `network_log`, `html_snapshot`.
+Evidence types: `screenshot`, `console_log`, `network_log`, `html_snapshot`, `api_response`, `api_headers`, `db_snapshot`, `stdout`, `stderr`, `exit_code`, `custom`.
 
 ## Step Tracking (MANDATORY)
 
