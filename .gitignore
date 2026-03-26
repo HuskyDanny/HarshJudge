@@ -39,7 +39,8 @@ node_modules/
 # --------------------------------
 # Build Output
 # --------------------------------
-dist/
+# dist/ is committed — plugin installs from git and needs built artifacts
+dist-ux/
 build/
 out/
 .next/
