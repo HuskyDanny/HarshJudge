@@ -20,14 +20,13 @@ Claude Code Skill  →  Bash  →  CLI  →  FileSystem
 ## Quick Start
 
 ```bash
-# Install globally
-npm install -g @allenpan2026/harshjudge
+# As Claude Code plugin (recommended)
+/plugin marketplace add HuskyDanny/HarshJudge
+/plugin install harshjudge@harshjudge-marketplace
+/reload-plugins
 
-# Or run without installing
+# Or run CLI standalone
 npx @allenpan2026/harshjudge --help
-
-# Initialize HarshJudge in your project
-harshjudge init my-app
 ```
 
 ## Prerequisites
