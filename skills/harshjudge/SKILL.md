@@ -9,14 +9,13 @@ AI-native E2E testing with CLI commands and evidence capture.
 
 ## CLI Setup
 
-All `harshjudge` commands below should be invoked via:
+The CLI is bundled with this plugin. At the start of each session, locate the plugin and set an alias:
 ```bash
-npx @allenpan2026/harshjudge@latest <command>
+HJ_PATH=$(python3 -c "import json; d=json.load(open('$HOME/.claude/plugins/installed_plugins.json')); print([v[0]['installPath'] for k,v in d['plugins'].items() if 'harshjudge' in k][0])")
+alias harshjudge="node $HJ_PATH/dist/cli.js"
 ```
-The first call downloads and caches the CLI. Subsequent calls are instant. For convenience, set an alias at the start of each session:
-```bash
-alias harshjudge="npx @allenpan2026/harshjudge@latest"
-```
+
+Then all commands below work as `harshjudge <command>`. No npm or npx needed.
 
 ## Core Principles
 

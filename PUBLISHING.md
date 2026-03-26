@@ -3,47 +3,34 @@
 ## Publish a New Version
 
 ```bash
-# 1. Bump version in THREE files
-#    - package.json → "version"
+# 1. Bump version in TWO files
 #    - .claude-plugin/plugin.json → "version"
 #    - .claude-plugin/marketplace.json → plugins[0].version
 
-# 2. Build & test
-pnpm build:cli && pnpm test
+# 2. Build
+pnpm build
 
-# 3. Publish to npm
-npm publish --access public
-
-# 4. Commit version bump → PR → MERGE TO MAIN
+# 3. Commit everything (including dist/) → PR → MERGE
 git checkout -b chore/bump-X.Y.Z
-git add package.json .claude-plugin/plugin.json .claude-plugin/marketplace.json
+git add .claude-plugin/ dist/ package.json
 git commit -m "chore: bump version to X.Y.Z"
 git push -u origin chore/bump-X.Y.Z
-gh pr create --title "chore: bump version to X.Y.Z" --body "npm published"
+gh pr create --title "chore: bump version to X.Y.Z" --body "Built and ready"
 gh pr merge --merge
 ```
 
-> **Order matters:** The plugin installs from git main. `plugin.json` version in the clone must match `marketplace.json` version, or `/plugin update` reports "already at latest."
+That's it. No npm publish needed.
 
-## Three Version Files
+> **Order matters:** `plugin.json` version in git main must match `marketplace.json` version, or `/plugin update` reports "already at latest."
+
+## Version Files
 
 | File | Purpose |
 |------|---------|
-| `package.json` | npm package version |
 | `.claude-plugin/plugin.json` | Version Claude Code reads from git clone |
 | `.claude-plugin/marketplace.json` | Version that triggers update check |
 
-All three must match.
-
-## npm Authentication
-
-Uses a **Classic Automation Token** (bypasses 2FA/OTP):
-
-```bash
-npm config set //registry.npmjs.org/:_authToken=npm_YOUR_TOKEN
-```
-
-Create at: https://www.npmjs.com/settings/allenpan2026/tokens → Classic → Automation
+Both must match. `package.json` version is optional (only matters if you also publish to npm).
 
 ## Client Update Instructions
 
@@ -64,14 +51,15 @@ Create at: https://www.npmjs.com/settings/allenpan2026/tokens → Classic → Au
 ## How It Works
 
 ```
-marketplace.json (in this repo)     ← triggers update check
+marketplace.json (in this repo)  ← triggers update check
     ↓
-plugin.json (in this repo)          ← version Claude Code reads from git clone
+plugin.json (in this repo)       ← version read from git clone
     ↓
-~/.claude/plugins/cache/            ← cloned copy of this repo (skills + manifest)
-
-npx @allenpan2026/harshjudge@latest ← CLI binary from npm (separate)
+~/.claude/plugins/cache/         ← cloned copy (skills + dist/ + manifest)
+    ↓
+dist/cli.js                      ← CLI runs directly from cache (no npm)
+dist/dashboard-worker.js         ← dashboard server
+dist/ux-dist/                    ← dashboard UI
 ```
 
-- **Plugin** installs from git (skills + plugin manifest) — single repo
-- **CLI** runs via `npx` from npm (built `dist/` not in git)
+Everything comes from git. No npm, no npx, no separate download.
