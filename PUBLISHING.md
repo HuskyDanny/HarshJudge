@@ -3,9 +3,10 @@
 ## Publish a New Version
 
 ```bash
-# 1. Bump version in both files
+# 1. Bump version in THREE files
 #    - package.json → "version"
 #    - .claude-plugin/plugin.json → "version"
+#    - .claude-plugin/marketplace.json → plugins[0].version
 
 # 2. Build & test
 pnpm build:cli && pnpm test
@@ -14,21 +15,25 @@ pnpm build:cli && pnpm test
 npm publish --access public
 
 # 4. Commit version bump → PR → MERGE TO MAIN
-#    ⚠ MUST merge before updating marketplace — plugin installs from git main
 git checkout -b chore/bump-X.Y.Z
-git add package.json .claude-plugin/plugin.json
+git add package.json .claude-plugin/plugin.json .claude-plugin/marketplace.json
 git commit -m "chore: bump version to X.Y.Z"
 git push -u origin chore/bump-X.Y.Z
 gh pr create --title "chore: bump version to X.Y.Z" --body "npm published"
 gh pr merge --merge
-
-# 5. Update marketplace repo (AFTER PR is merged)
-cd /tmp && git clone https://github.com/HuskyDanny/harshjudge-marketplace.git
-# Edit .claude-plugin/marketplace.json → bump version
-git commit -am "chore: bump to X.Y.Z" && git push
 ```
 
-> **Order matters:** The plugin installs from git main, not npm. If you update the marketplace before merging the version bump PR, `/plugin update` will see the old version and report "already at latest".
+> **Order matters:** The plugin installs from git main. `plugin.json` version in the clone must match `marketplace.json` version, or `/plugin update` reports "already at latest."
+
+## Three Version Files
+
+| File | Purpose |
+|------|---------|
+| `package.json` | npm package version |
+| `.claude-plugin/plugin.json` | Version Claude Code reads from git clone |
+| `.claude-plugin/marketplace.json` | Version that triggers update check |
+
+All three must match.
 
 ## npm Authentication
 
@@ -42,8 +47,6 @@ Create at: https://www.npmjs.com/settings/allenpan2026/tokens → Classic → Au
 
 ## Client Update Instructions
 
-Users update the plugin in Claude Code:
-
 ```
 /plugin marketplace update harshjudge-marketplace
 /plugin update harshjudge@harshjudge-marketplace
@@ -53,13 +56,22 @@ Users update the plugin in Claude Code:
 ## First-Time Install
 
 ```
-/plugin marketplace add HuskyDanny/harshjudge-marketplace
+/plugin marketplace add HuskyDanny/HarshJudge
 /plugin install harshjudge@harshjudge-marketplace
 /reload-plugins
 ```
 
 ## How It Works
 
-- **Plugin** installs from git (skills + plugin manifest)
-- **CLI** runs via `npx @allenpan2026/harshjudge@latest` (downloads built package from npm)
-- Marketplace repo (`HuskyDanny/harshjudge-marketplace`) points to the main repo
+```
+marketplace.json (in this repo)     ← triggers update check
+    ↓
+plugin.json (in this repo)          ← version Claude Code reads from git clone
+    ↓
+~/.claude/plugins/cache/            ← cloned copy of this repo (skills + manifest)
+
+npx @allenpan2026/harshjudge@latest ← CLI binary from npm (separate)
+```
+
+- **Plugin** installs from git (skills + plugin manifest) — single repo
+- **CLI** runs via `npx` from npm (built `dist/` not in git)
