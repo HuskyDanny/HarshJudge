@@ -10,19 +10,25 @@
 # 2. Build & test
 pnpm build:cli && pnpm test
 
-# 3. Commit & push
-git add package.json .claude-plugin/plugin.json
-git commit -m "chore: bump version to X.Y.Z"
-git push
-
-# 4. Publish to npm
+# 3. Publish to npm
 npm publish --access public
 
-# 5. Update marketplace repo
+# 4. Commit version bump → PR → MERGE TO MAIN
+#    ⚠ MUST merge before updating marketplace — plugin installs from git main
+git checkout -b chore/bump-X.Y.Z
+git add package.json .claude-plugin/plugin.json
+git commit -m "chore: bump version to X.Y.Z"
+git push -u origin chore/bump-X.Y.Z
+gh pr create --title "chore: bump version to X.Y.Z" --body "npm published"
+gh pr merge --merge
+
+# 5. Update marketplace repo (AFTER PR is merged)
 cd /tmp && git clone https://github.com/HuskyDanny/harshjudge-marketplace.git
 # Edit .claude-plugin/marketplace.json → bump version
 git commit -am "chore: bump to X.Y.Z" && git push
 ```
+
+> **Order matters:** The plugin installs from git main, not npm. If you update the marketplace before merging the version bump PR, `/plugin update` will see the old version and report "already at latest".
 
 ## npm Authentication
 
